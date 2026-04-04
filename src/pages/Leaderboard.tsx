@@ -8,7 +8,7 @@ import { Trophy, TrendingUp, Target, Coins, Star, Skull, Shield, ArrowUp, ArrowD
 type LeaderboardTab = 'global' | 'bounty' | 'gamblers' | 'clans' | 'shame' | 'country';
 
 const Leaderboard = () => {
-  const { users, clans, currentUser } = useGame();
+  const { users, clans = [], currentUser } = useGame();
   const [tab, setTab] = useState<LeaderboardTab>('global');
 
   const allUsers = currentUser ? [currentUser, ...users.filter(u => u.id !== currentUser.id)] : users;

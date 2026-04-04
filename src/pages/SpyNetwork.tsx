@@ -4,7 +4,7 @@ import { getFactionColor } from '@/lib/gameUtils';
 import { Eye, EyeOff, AlertTriangle, Coins } from 'lucide-react';
 
 const SpyNetwork = () => {
-  const { spyMissions, clans, currentUser } = useGame();
+  const { spyMissions, clans = [], currentUser } = useGame();
   const factionColor = currentUser ? getFactionColor(currentUser.anime) : '#8B00FF';
   const [result, setResult] = useState<string | null>(null);
 
