@@ -14,7 +14,7 @@ const NavBar = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between"
+    <nav className="fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-4 flex items-center justify-between"
       style={{ background: 'rgba(3, 3, 8, 0.85)', backdropFilter: 'blur(16px)', borderBottom: '1px solid var(--border)' }}>
       <div className="relative cursor-pointer" onClick={() => scrollTo('hero')}>
         <span className="font-serif absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-opacity duration-300 hover:opacity-25"
@@ -146,13 +146,11 @@ const Hero = () => {
           Not a game. Not just a forum. A social platform where being a One Piece fan means something different than being a JJK fan, and both of you have something to prove.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center gap-4 mb-8 w-full sm:w-auto px-4">
+        <div className="flex flex-col sm:flex-row items-center gap-4 mt-8">
           <button onClick={() => navigate('/signup')}
-            className="w-full sm:w-auto group flex items-center justify-center gap-2 px-8 py-3.5 rounded-[3px] font-display font-bold tracking-[2px] text-white transition-all duration-200 hover:scale-105"
-            style={{ background: 'linear-gradient(135deg, hsl(var(--neon-purple)), hsl(var(--neon-purple) / 0.8))', boxShadow: '0 0 0 hsl(var(--neon-purple) / 0)' }}
-            onMouseEnter={e => e.currentTarget.style.boxShadow = '0 0 40px hsl(var(--neon-purple) / 0.5)'}
-            onMouseLeave={e => e.currentTarget.style.boxShadow = '0 0 0 hsl(var(--neon-purple) / 0)'}>
-            CHOOSE YOUR FACTION <ArrowRight size={18} strokeWidth={2} className="transition-transform group-hover:translate-x-1" />
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 rounded-[3px] font-display font-bold tracking-[2px] transition-all duration-200 hover:brightness-110 hover:shadow-[0_0_20px_rgba(139,0,255,0.4)]"
+            style={{ background: 'linear-gradient(135deg, var(--neon-purple), #5500CC)', color: 'white' }}>
+            <Zap size={18} fill="currentColor" /> ENTER ZANKOKU
           </button>
           
           <button onClick={() => navigate('/dashboard')}
@@ -162,10 +160,6 @@ const Hero = () => {
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.boxShadow = 'none'; }}>
             <Play size={18} fill="currentColor" /> SEE HOW IT WORKS
           </button>
-        </div>
-        
-        <div className="font-body text-sm" style={{ color: 'var(--text-muted)' }}>
-          14,280 fighters active. 893 clan wars in progress. Your faction is waiting.
         </div>
       </div>
 
@@ -385,121 +379,6 @@ const Factions = () => {
           style={{ border: '1px solid var(--border-active)', color: 'white', background: 'var(--bg-elevated)' }}>
           CHOOSE YOUR FACTION
         </button>
-      </div>
-    </section>
-  );
-};
-
-// Section 7: Stats Section
-const SocialProof = () => {
-  return (
-    <section className="relative py-20 px-6" style={{ background: 'var(--bg-surface)' }}>
-      <div className="absolute inset-0 flex justify-center items-center pointer-events-none overflow-hidden">
-        <span className="font-serif leading-none" style={{ fontSize: '30vw', color: 'white', opacity: 0.04 }}>残酷</span>
-      </div>
-      
-      <div className="text-center relative z-10 px-4 max-w-4xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
-          <div>
-            <div className="font-display font-black text-[48px] text-white mb-2">14,280</div>
-            <div className="font-body text-sm tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>FIGHTERS ACTIVE</div>
-          </div>
-          <div>
-            <div className="font-display font-black text-[48px] text-white mb-2">893</div>
-            <div className="font-body text-sm tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>CLAN WARS IN PROGRESS</div>
-          </div>
-          <div>
-            <div className="font-display font-black text-[48px] text-white mb-2">47,200</div>
-            <div className="font-body text-sm tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>TECHNIQUES PURCHASED</div>
-          </div>
-        </div>
-        <p className="font-body italic text-[18px] max-w-[600px] mx-auto" style={{ color: 'var(--text-secondary)' }}>
-          Every rank you see was taken from someone. Every technique on that profile was bought or earned. Nothing here is given.
-        </p>
-      </div>
-    </section>
-  );
-};
-
-// Section 8: Community Feed Preview
-const Testimonials = () => {
-  return (
-    <section id="from-the-feed" className="py-12 md:py-20 px-6" style={{ background: 'var(--bg-base)' }}>
-      <div className="max-w-[1200px] mx-auto">
-        <div className="font-body font-semibold text-xs tracking-[6px] text-center mb-12" style={{ color: 'var(--text-muted)' }}>FROM THE FEED</div>
-        <h2 className="font-display font-bold text-white mb-16 text-center" style={{ fontSize: 'clamp(24px, 3vw, 36px)' }}>This is what it looks like when anime fans have something at stake.</h2>
-        
-        <div className="font-body text-center mb-12 max-w-3xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
-          These are real post types from inside Zankoku. No moderation theater. No sanitized highlights. This is what the feed actually looks like.
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-6 rounded-[4px]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full" style={{ background: '#0D0D1A', border: '1px solid var(--neon-red)', boxShadow: '0 0 10px rgba(255,0,60,0.4)' }} />
-              <div>
-                <div className="font-body font-bold text-white text-[15px] leading-tight">ShadowAkira</div>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="font-body font-semibold text-[11px] tracking-[2px]" style={{ color: 'var(--neon-red)' }}>JJK</span>
-                  <span className="px-1.5 py-0.5 text-[10px] border rounded-sm" style={{ borderColor: 'var(--neon-red)', color: 'var(--neon-red)' }}>VILLAIN</span>
-                  <span className="px-1.5 py-0.5 text-[10px] border rounded-sm" style={{ borderColor: 'var(--neon-red)', color: 'var(--neon-red)' }}>BERSERKER</span>
-                  <span className="px-1.5 py-0.5 text-[10px] border rounded-sm" style={{ borderColor: 'var(--neon-red)', color: 'var(--neon-red)' }}>RANK 12</span>
-                </div>
-              </div>
-            </div>
-            <p className="font-body text-[15px] leading-[1.6] mb-6" style={{ color: 'var(--text-primary)' }}>
-              Just ran a TITAN grid against VoidHunter. 14 shapes to their 3. They used Domain Expansion on turn 4. I waited them out and hit Ope Ope no Mi when they were up by 6. Final score: me 14, them 3. I took 840 points. The bounty I placed on them is still active. Come claim it if you think you can.
-            </p>
-            <div className="flex items-center gap-4 font-body text-[13px]" style={{ color: 'var(--text-muted)' }}>
-              <span className="flex items-center gap-1.5"><Heart size={14} /> 234 likes</span>
-              <span className="flex items-center gap-1.5"><MessageCircle size={14} /> 18 comments</span>
-            </div>
-          </div>
-
-          <div className="p-6 rounded-[4px]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full" style={{ background: '#0D0D1A', border: '1px solid var(--neon-blue)', boxShadow: '0 0 10px rgba(0,200,255,0.4)' }} />
-              <div>
-                <div className="font-body font-bold text-white text-[15px] leading-tight">NullBlade</div>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="font-body font-semibold text-[11px] tracking-[2px]" style={{ color: 'var(--neon-blue)' }}>BLEACH</span>
-                  <span className="px-1.5 py-0.5 text-[10px] border rounded-sm" style={{ borderColor: 'var(--neon-blue)', color: 'var(--neon-blue)' }}>HERO</span>
-                  <span className="px-1.5 py-0.5 text-[10px] border rounded-sm" style={{ borderColor: 'var(--neon-blue)', color: 'var(--neon-blue)' }}>STRATEGIST</span>
-                  <span className="px-1.5 py-0.5 text-[10px] border rounded-sm" style={{ borderColor: 'var(--neon-blue)', color: 'var(--neon-blue)' }}>RANK 34</span>
-                </div>
-              </div>
-            </div>
-            <p className="font-body text-[15px] leading-[1.6] mb-6" style={{ color: 'var(--text-primary)' }}>
-              Cursed Dominion declared war on us yesterday. They have 47 members to our 31. They sent a spy in two weeks ago. We found them on day 9. The intel they got was a decoy. We knew every technique they were planning. Final score: Null Throne 23 wins, Cursed Dominion 4. Looking for two more fighters who know how to hold a flank. Bleach or mixed faction. Message me.
-            </p>
-            <div className="flex items-center gap-4 font-body text-[13px]" style={{ color: 'var(--text-muted)' }}>
-              <span className="flex items-center gap-1.5"><Heart size={14} /> 88 likes</span>
-              <span className="flex items-center gap-1.5"><MessageCircle size={14} /> 31 comments</span>
-            </div>
-          </div>
-
-          <div className="p-6 rounded-[4px]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full" style={{ background: '#0D0D1A', border: '1px solid var(--neon-gold)', boxShadow: '0 0 10px rgba(255,215,0,0.4)' }} />
-              <div>
-                <div className="font-body font-bold text-white text-[15px] leading-tight">GhostSeraph</div>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="font-body font-semibold text-[11px] tracking-[2px]" style={{ color: 'var(--neon-gold)' }}>ONE PIECE</span>
-                  <span className="px-1.5 py-0.5 text-[10px] border rounded-sm" style={{ borderColor: 'var(--neon-gold)', color: 'var(--neon-gold)' }}>WANDERER</span>
-                  <span className="px-1.5 py-0.5 text-[10px] border rounded-sm" style={{ borderColor: 'var(--neon-gold)', color: 'var(--neon-gold)' }}>GHOST</span>
-                  <span className="px-1.5 py-0.5 text-[10px] border rounded-sm" style={{ borderColor: 'var(--neon-gold)', color: 'var(--neon-gold)' }}>RANK 67</span>
-                </div>
-              </div>
-            </div>
-            <p className="font-body text-[15px] leading-[1.6] mb-6" style={{ color: 'var(--text-primary)' }}>
-              Yes I switched twice. Yes I have two coward stars. Yes there are three bounties on my head right now. I have been rank 67 for six weeks using nothing but Observation Haki and patience. Two of those bounty hunters gave up. The third one I beat in a best-of-3. Come find me if you want to try. I am not hard to locate. I just never lose.
-            </p>
-            <div className="flex items-center gap-4 font-body text-[13px]" style={{ color: 'var(--text-muted)' }}>
-              <span className="flex items-center gap-1.5"><Heart size={14} /> 192 likes</span>
-              <span className="flex items-center gap-1.5"><MessageCircle size={14} /> 67 comments</span>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
   );
@@ -769,6 +648,57 @@ const Landing = () => {
       `;
       document.head.appendChild(style);
     }
+
+    // Add mobile responsiveness styles
+    const mobileStyle = document.createElement('style');
+    mobileStyle.textContent = `
+      @media (max-width: 768px) {
+        body {
+          overflow-x: hidden !important;
+        }
+        
+        .min-h-screen {
+          overflow-x: hidden;
+        }
+        
+        .zankoku-bg {
+          overflow-x: hidden;
+        }
+        
+        /* Prevent horizontal scroll on all sections */
+        section {
+          overflow-x: hidden;
+        }
+        
+        /* Fix font sizes for mobile */
+        .font-display {
+          font-size: clamp(16px, 4vw, 24px) !important;
+        }
+        
+        /* Ensure buttons don't overflow */
+        button {
+          max-width: 100%;
+          word-wrap: break-word;
+        }
+        
+        /* Fix grid layouts */
+        .grid {
+          width: 100%;
+          max-width: 100%;
+        }
+        
+        /* Fix text overflow */
+        p, h1, h2, h3, h4, h5, h6 {
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+        }
+      }
+    `;
+    document.head.appendChild(mobileStyle);
+
+    return () => {
+      document.head.removeChild(mobileStyle);
+    };
   }, []);
 
   return (
@@ -780,8 +710,6 @@ const Landing = () => {
       <HowItWorks />
       <GamePreview />
       <Factions />
-      <SocialProof />
-      <Testimonials />
       <Creators />
       <FinalCTA />
       <Footer />
