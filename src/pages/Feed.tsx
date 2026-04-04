@@ -73,12 +73,13 @@ const FeedEnhanced = () => {
           calculateEngagementScore(b) - calculateEngagementScore(a)
         );
       
-      case 'clan':
+      case 'clan': {
         if (!currentUser?.clanId) return [];
         const clanMemberIds = users
           .filter(u => u.clanId === currentUser.clanId)
           .map(u => u.id);
         return filtered.filter(p => clanMemberIds.includes(p.userId));
+      }
       
       case 'foryou':
       default:

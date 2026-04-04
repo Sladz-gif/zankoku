@@ -1073,7 +1073,7 @@ export class DotWarsAI {
     // For each top move, use alpha-beta pruning
     const topMoves = moveScores.slice(0, 8);
     let alpha = -Infinity;
-    let beta = Infinity;
+    const beta = Infinity;
 
     for (const moveScore of topMoves) {
       const score = this.alphaBeta(
@@ -1237,7 +1237,7 @@ export class DotWarsAI {
 
     // Count potential shapes
     let aiPotential = 0;
-    let humanPotential = 0;
+    const humanPotential = 0;
 
     if (gameState.duelType === 'square') {
       for (let r = 0; r < gameState.gridSize - 1; r++) {

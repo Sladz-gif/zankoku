@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useGame } from '@/context/GameContext';
 import { getFactionColor, getFactionGlow } from '@/lib/gameUtils';
 import { FACTION_NAMES, FACTION_RESOURCE, AnimeFaction, STORE_PACKAGES } from '@/types/game';
-import { ShoppingBag, Coins, Zap, CheckCircle, Crown, Infinity } from 'lucide-react';
+import { ShoppingBag, Coins, Zap, CheckCircle, Crown, Infinity as InfinityIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const ANIME_RESOURCES = {

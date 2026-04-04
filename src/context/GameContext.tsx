@@ -178,7 +178,76 @@ const mockNotifications: Notification[] = [];
 const mockBounties: Bounty[] = [];
 const mockSpyMissions: SpyMission[] = [];
 
-const GameContext = createContext<GameState | null>(null);
+const defaultContext: GameState = {
+  currentUser: null,
+  onboarded: false,
+  users: [],
+  clans: [],
+  posts: [],
+  bounties: [],
+  spyMissions: [],
+  comments: [],
+  messages: [],
+  notifications: [],
+  setCurrentUser: () => {},
+  setOnboarded: () => {},
+  addPost: () => {},
+  updateCurrency: () => {},
+  joinClan: () => {},
+  updatePoints: () => {},
+  toggleLike: () => {},
+  repost: () => {},
+  addComment: () => {},
+  sendMessage: () => {},
+  markNotificationRead: () => {},
+  markAllNotificationsRead: () => {},
+  updateUserRank: () => {},
+  getRankings: () => ({ users: [], clans: [], length: 0, pop: () => undefined, push: () => undefined, concat: () => [] }),
+  updateUserStats: () => {},
+  toggleBookmark: () => {},
+  sharePost: () => {},
+  deletePost: () => {},
+  editPost: () => {},
+  incrementPostViews: () => {},
+  followedUsers: [],
+  blockedUsers: [],
+  toggleFollow: () => {},
+  blockUser: () => {},
+  clanPosts: [],
+  clanJoinRequests: [],
+  createClan: () => {},
+  leaveClan: () => {},
+  addClanPost: () => {},
+  voteClanPost: () => {},
+  removeClanPost: () => {},
+  pinClanPost: () => {},
+  requestJoinClan: () => {},
+  approveJoinRequest: () => {},
+  rejectJoinRequest: () => {},
+  banClanMember: () => {},
+  promoteClanMember: () => {},
+  updateClanRules: () => {},
+  getClanMemberRole: () => null,
+  mangaSeries: [],
+  userLibrary: null,
+  followedCreators: [],
+  likeMangaSeries: () => {},
+  followCreator: () => {},
+  purchaseEpisode: () => false,
+  purchaseSeries: () => false,
+  addToLibrary: () => {},
+  updateReadingProgress: () => {},
+  addMangaReview: () => {},
+  addMangaComment: () => {},
+  likeMangaComment: () => {},
+  getMangaComments: () => [],
+  getMangaReviews: () => [],
+  getReadingProgress: () => null,
+  getLibraryStats: () => ({ totalSeries: 0, totalEpisodes: 0, completedSeries: 0 }),
+  getResourceStatus: () => ({ current: 100, max: 100, hasUnlimited: false, canRefill: false, timeUntilRefill: null })
+};
+
+export const GameContext = createContext<GameState | null>(defaultContext);
 
 export const useGame = () => {
   const ctx = useContext(GameContext);
@@ -1288,7 +1357,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <GameContext.Provider value={{
-      currentUser, onboarded, users, clans, posts, bounties, spyMissions, comments, messages, notifications,
+      currentUser, onboarded, users, clans: clans || [], posts, bounties, spyMissions, comments, messages, notifications,
       setCurrentUser, setOnboarded, addPost, updateCurrency, placeBounty, joinClan, updatePoints,
       toggleLike, repost, addComment, sendMessage, markNotificationRead, markAllNotificationsRead,
       updateUserRank, getRankings, updateUserStats,

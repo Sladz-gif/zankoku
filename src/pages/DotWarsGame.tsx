@@ -1992,7 +1992,27 @@ const DotWarsGame = () => {
                 <p className="font-body text-xs mt-1" style={{ color: '#FFD70080' }}>Destroy 5 opponent shapes when momentum reaches 100%</p>
               </div>
               <button
-                onClick={() => useMomentumPower(currentPlayer)}
+                onClick={() => {
+                  // Momentum Power: Destroy 5 opponent shapes when momentum reaches 100%
+                  if (momentumLevel[`player${currentPlayer}`] >= 100) {
+                    const opponent = currentPlayer === 1 ? 2 : 1;
+                    let destroyed = 0;
+                    
+                    // Find and destroy up to 5 opponent shapes
+                    for (let row = 0; row < gridSize && destroyed < 5; row++) {
+                      for (let col = 0; col < gridSize && destroyed < 5; col++) {
+                        if (grid[row][col] === opponent) {
+                          grid[row][col] = 0;
+                          destroyed++;
+                        }
+                      }
+                    }
+                    
+                    // Reset momentum after use
+                    updateMomentumLevel(currentPlayer, 0);
+                    updateCallout(`Player ${currentPlayer} used MOMENTUM POWER!`, 'legendary');
+                  }
+                }}
                 disabled={momentumLevel[`player${currentPlayer}`] < 100}
                 className="w-full text-left p-4 rounded-lg transition-all duration-200"
                 style={{

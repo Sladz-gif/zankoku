@@ -61,7 +61,7 @@ export const profilesService = {
   },
 
   // Subscribe to real-time profile updates
-  subscribeToProfiles(callback: (payload: any) => void) {
+  subscribeToProfiles(callback: (payload: { event: string; schema: { name: string; tables: any[] } }) => void) {
     return supabase
       .channel('profiles-changes')
       .on(
