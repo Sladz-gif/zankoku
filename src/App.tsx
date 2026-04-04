@@ -3,7 +3,7 @@ import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { GameProvider } from "@/context/GameContext";
 import AppLayout from "@/components/layout/AppLayout";
 import AuthGuard from "@/components/AuthGuard";
-import Landing from "./pages/landing";
+import Landing from "./pages/Landing";
 import SignUp from "./pages/SignUp";
 import SignIn from "./pages/SignIn";
 import ForgotPassword from "./pages/ForgotPassword";
