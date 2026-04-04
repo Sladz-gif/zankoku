@@ -3,6 +3,10 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "framework": "vite",
+  "env": {
+    "VITE_SUPABASE_URL": "https://ieqbuwuppvasrlnybjoe.supabase.co",
+    "VITE_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImllcWJ1d3VwcHZhc3Jsbnliam9lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQxNDA4MjIsImV4cCI6MjAzOTcxNjgyMn0.W1sRDLJY5YVqX4J7HdL4f9B7n3h7sK8kM9T2wX4Z7Y"
+  },
 
   "rewrites": [
     {
