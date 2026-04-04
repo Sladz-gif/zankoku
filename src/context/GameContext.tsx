@@ -200,7 +200,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   });
   const [onboarded, setOnboarded] = useState(false);
   const [users, setUsers] = useState<ZankokuUser[]>(mockUsers);
-  const [clans] = useState<Clan[]>(mockClans);
+  const [clans, setClans] = useState<Clan[]>(mockClans);
   const [posts, setPosts] = useState<Post[]>(mockPosts);
   const [bounties, setBounties] = useState<Bounty[]>(mockBounties);
   const [spyMissions] = useState<SpyMission[]>(mockSpyMissions);
