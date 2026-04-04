@@ -496,9 +496,11 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         contributions: 0
       }]
     };
-    setClans(prev => [...prev, newClan]);
+    if (setClans) {
+      setClans(prev => [...(prev || []), newClan]);
+    }
     setCurrentUser({ ...currentUser, clanId: newClan.id });
-  }, [currentUser, setCurrentUser]);
+  }, [currentUser, setCurrentUser, setClans]);
 
   const leaveClan = useCallback(() => {
     if (!currentUser) return;
@@ -628,6 +630,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const getClanMemberRole = useCallback((clanId: number, userId: number): ClanMemberRole | null => {
+    if (!clans || clans.length === 0) return null;
     const clan = clans.find(c => c.id === clanId);
     if (!clan) return null;
     const member = clan.memberList.find(m => m.userId === userId);
