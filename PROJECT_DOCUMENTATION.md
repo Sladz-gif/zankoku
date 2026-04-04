@@ -1337,7 +1337,7 @@ VITE_ANALYTICS_ID=UA-...
 ### **Deployment Platforms**
 
 **Recommended:**
-- **Frontend**: Vercel, Netlify, Cloudflare Pages
+- **Frontend**: Netlify, Cloudflare Pages, GitHub Pages
 - **Backend API**: AWS Lambda, Google Cloud Functions
 - **Database**: PostgreSQL (Supabase, Neon)
 - **Real-time**: WebSocket server (Socket.io, Pusher)
@@ -1361,7 +1361,10 @@ jobs:
       - run: npm install
       - run: npm run build
       - run: npm run test
-      - uses: vercel/action@v1
+      - uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
 ```
 
 ---
