@@ -3,7 +3,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { User, Lock, Eye, EyeOff, AlertCircle, ArrowRight, CheckCircle } from 'lucide-react';
 import { useGame } from '@/context/GameContext';
 import { ZankokuUser } from '@/types/game';
-import { signIn } from '@/lib/supabase';
+import { signInWithUsernameOrEmail } from '@/lib/supabase';
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -18,9 +18,13 @@ const SignIn = () => {
   const [errorText, setErrorText] = useState('');
   const [authenticating, setAuthenticating] = useState(false);
 
+  // Determine if user is entering email or username
+  const isEmail = identifier.includes('@');
+  const inputType = isEmail ? 'email' : 'username';
+
   const handleSignIn = async () => {
     if (!identifier || !password) {
-      setErrorText('Invalid email or password. Check your details and try again.');
+      setErrorText('Invalid email/username or password. Check your details and try again.');
       return;
     }
     
@@ -28,18 +32,20 @@ const SignIn = () => {
     setAuthenticating(true);
     
     try {
-      // Call Supabase signIn function
-      const { data, error } = await signIn(identifier, password);
+      // Call new signInWithUsernameOrEmail function
+      const { data, error } = await signInWithUsernameOrEmail(identifier, password);
       
       if (error) {
         console.error('Sign in error:', error);
         // Handle specific error messages
         if (error.message.includes('Invalid login credentials')) {
-          setErrorText('Invalid email or password. Please check your details and try again.');
+          setErrorText('Invalid email/username or password. Please check your details and try again.');
         } else if (error.message.includes('Email not confirmed')) {
           setErrorText('Please confirm your email address before signing in.');
+        } else if (error.message.includes('User not found')) {
+          setErrorText('Username not found. Please check your username or sign up.');
         } else {
-          setErrorText('Sign in failed. Please try again.');
+          setErrorText(error.message || 'Sign in failed. Please try again.');
         }
         setAuthenticating(false);
         return;
@@ -48,7 +54,7 @@ const SignIn = () => {
       if (data?.user) {
         // Create user profile with additional data
         const user: ZankokuUser = {
-          id: data.user.id,
+          id: parseInt(data.user.id),
           username: data.user.user_metadata?.username || identifier.split('@')[0] || 'Player',
           bio: data.user.user_metadata?.bio || '',
           anime: data.user.user_metadata?.anime || 'jjk',
@@ -136,7 +142,7 @@ const SignIn = () => {
             <div className="relative">
               <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
               <input type="text" value={identifier} onChange={e => { setIdentifier(e.target.value); setErrorText(''); }}
-                     placeholder="email or username"
+                     placeholder={isEmail ? "your@email.com" : "your username"}
                      className="w-full font-body text-[15px] rounded-[3px] focus:outline-none focus:border-[hsl(var(--neon-purple))] transition-colors"
                      style={{ background: 'hsl(var(--bg-elevated))', border: '1px solid', borderColor: errorText ? 'hsl(var(--neon-red))' : 'hsl(var(--border))', color: 'hsl(var(--text-primary))', padding: '14px 18px 14px 44px' }} />
             </div>

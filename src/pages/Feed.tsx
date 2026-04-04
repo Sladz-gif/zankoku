@@ -21,7 +21,7 @@ import {
 
 const FeedEnhanced = () => {
   const { 
-    currentUser, users, posts, bounties, comments, 
+    currentUser, users, posts, bounties, comments, clans,
     addPost, toggleLike, repost, addComment, toggleBookmark, sharePost,
     deletePost, editPost, incrementPostViews, followedUsers, blockedUsers,
     toggleFollow, blockUser

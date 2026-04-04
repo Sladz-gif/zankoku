@@ -42,6 +42,50 @@ export const signUp = async (email: string, password: string, username: string) 
   return { data, error }
 }
 
+export const signInWithUsernameOrEmail = async (identifier: string, password: string) => {
+  // Check if identifier is an email
+  const isEmail = identifier.includes('@');
+  
+  if (isEmail) {
+    // Direct email sign in
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: identifier,
+      password
+    })
+    return { data, error }
+  } else {
+    // Username lookup - find user by username in profiles table
+    try {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('username', identifier)
+        .eq('is_banned', false)
+        .maybeSingle() as { data: { email: string } | null, error: any };
+      
+      if (profileError || !profileData?.email) {
+        return { 
+          data: null, 
+          error: { message: 'User not found. Please check your username or sign up.' } 
+        };
+      }
+      
+      // Sign in with the found email
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: profileData.email,
+        password
+      })
+      
+      return { data, error };
+    } catch (error) {
+      return { 
+        data: null, 
+        error: { message: 'Username lookup failed. Please try again.' } 
+      };
+    }
+  }
+}
+
 export const signIn = async (email: string, password: string) => {
   const { data, error } = await supabase.auth.signInWithPassword({
     email,

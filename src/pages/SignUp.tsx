@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Mail, User, Lock, Eye, EyeOff, Globe, CheckCircle, AlertCircle, ArrowRight, Swords, Skull, Compass, Zap, Dumbbell } from 'lucide-react';
 import { useGame } from '@/context/GameContext';
 import { AnimeFaction, Alignment, FACTION_NAMES, FACTION_RESOURCE, TECHNIQUES, COUNTRIES, FACTION_COLORS, ZankokuUser } from '@/types/game';
-import { signUp } from '@/lib/supabase';
+import { signUp, supabase } from '@/lib/supabase';
 
 const ANIMES: AnimeFaction[] = ['naruto', 'jjk', 'onepiece', 'bleach', 'blackclover', 'dragonball', 'demonslayer', 'hxh'];
 
@@ -33,6 +33,8 @@ const SignUp = () => {
   const [faction, setFaction] = useState<AnimeFaction | null>(null);
   
   const [completing, setCompleting] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
 
   // Validation
   const isValidEmail = email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
@@ -54,11 +56,66 @@ const SignUp = () => {
 
   const doPasswordsMatch = password.length > 0 && password === confirmPassword;
 
+  // Check if email already exists
+  const checkEmailExists = async (email: string) => {
+    if (!isValidEmail) {
+      setEmailError(null);
+      return;
+    }
+
+    setIsCheckingEmail(true);
+    setEmailError(null);
+
+    try {
+      // Use Supabase auth.signInWithPassword with a dummy password to check if user exists
+      // This is a safe way to check without revealing sensitive info
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password: 'dummy-password-for-check-only'
+      });
+
+      // If error is about invalid credentials, user exists
+      if (error && error.message.includes('Invalid login credentials')) {
+        setEmailError('An account with this email already exists. Please sign in instead.');
+      }
+      // If error is about email not confirmed, user exists but hasn't confirmed
+      else if (error && error.message.includes('Email not confirmed')) {
+        setEmailError('An account with this email exists but hasn\'t been confirmed. Please check your email or sign in.');
+      }
+      // If no error, user doesn't exist (or password happens to match, which is extremely unlikely)
+      // In the rare case password matches, we'll handle it in the actual signup
+    } catch (error) {
+      // If there's a network error or other issue, don't block the user
+      console.log('Email check failed:', error);
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  };
+
+  // Check email when user stops typing
+  useMemo(() => {
+    if (isValidEmail && email) {
+      const timeoutId = setTimeout(() => {
+        checkEmailExists(email);
+      }, 500); // Debounce for 500ms
+
+      return () => clearTimeout(timeoutId);
+    } else {
+      setEmailError(null);
+    }
+  }, [email]);
+
   const filteredCountries = COUNTRIES.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()));
 
-  const canProceedStep1 = isValidEmail && isValidUsername && passwordStrength > 0 && doPasswordsMatch && selectedCountry && acceptedTerms;
+  const canProceedStep1 = isValidEmail && isValidUsername && passwordStrength > 0 && doPasswordsMatch && selectedCountry && acceptedTerms && !emailError;
 
   const handleComplete = async () => {
+    // Prevent proceeding if there's already an email error
+    if (emailError) {
+      alert('Please use a different email address or sign in to your existing account.');
+      return;
+    }
+
     setCompleting(true);
     
     try {
@@ -82,7 +139,7 @@ const SignUp = () => {
       if (data?.user) {
         // Create user profile with additional data
         const newUser: ZankokuUser = {
-          id: data.user.id,
+          id: parseInt(data.user.id),
           username: username || 'Fighter' + Date.now().toString().slice(-4),
           bio: '',
           anime: faction || 'jjk',
@@ -188,10 +245,22 @@ const SignUp = () => {
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                        placeholder="your@email.com"
                        className="w-full font-body text-[15px] rounded-[3px] focus:outline-none transition-colors"
-                       style={{ background: 'hsl(var(--bg-elevated))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--text-primary))', padding: '14px 18px 14px 44px', borderColor: email && isValidEmail ? 'hsl(var(--neon-green))' : email && !isValidEmail ? 'hsl(var(--neon-red))' : '' }} />
-                {email && isValidEmail && <CheckCircle size={16} className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: 'hsl(var(--neon-green))' }} />}
+                       style={{ background: 'hsl(var(--bg-elevated))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--text-primary))', padding: '14px 18px 14px 44px', borderColor: emailError ? 'hsl(var(--neon-red))' : email && isValidEmail ? 'hsl(var(--neon-green))' : email && !isValidEmail ? 'hsl(var(--neon-red))' : '' }} />
+                {isCheckingEmail && (
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                    <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'hsl(var(--neon-purple))' }}></div>
+                  </div>
+                )}
+                {!isCheckingEmail && email && isValidEmail && !emailError && <CheckCircle size={16} className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: 'hsl(var(--neon-green))' }} />}
+                {!isCheckingEmail && emailError && <AlertCircle size={16} className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: 'hsl(var(--neon-red))' }} />}
               </div>
               {email && !isValidEmail && <div className="font-body text-[13px] mt-1.5 flex items-center gap-1.5" style={{ color: 'hsl(var(--neon-red))' }}><AlertCircle size={14} /> Invalid email format.</div>}
+              {emailError && (
+                <div className="font-body text-[13px] mt-1.5 flex items-start gap-1.5" style={{ color: 'hsl(var(--neon-red))' }}>
+                  <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
+                  <span>{emailError}</span>
+                </div>
+              )}
             </div>
 
             <div>
@@ -304,9 +373,26 @@ const SignUp = () => {
             </div>
 
             
-            <div className="mt-8 text-center font-body text-[14px]" style={{ color: 'var(--text-secondary)' }}>
-              Already have an account? <Link to="/signin" className="hover:underline transition-colors font-bold" style={{ color: 'hsl(var(--neon-purple))' }}>SIGN IN</Link>.
-            </div>
+            {emailError ? (
+              <div className="mt-6 p-4 rounded-[4px]" style={{ background: 'hsl(var(--neon-red) / 0.1)', border: '1px solid hsl(var(--neon-red) / 0.3)' }}>
+                <div className="text-center">
+                  <div className="font-body text-[14px] mb-3" style={{ color: 'hsl(var(--neon-red))' }}>
+                    {emailError}
+                  </div>
+                  <Link 
+                    to="/signin" 
+                    className="inline-flex items-center gap-2 px-6 py-2 rounded-[3px] font-display font-bold text-sm tracking-[2px] transition-all duration-200"
+                    style={{ background: 'hsl(var(--neon-red))', color: 'white' }}
+                  >
+                    SIGN IN INSTEAD
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-8 text-center font-body text-[14px]" style={{ color: 'var(--text-secondary)' }}>
+                Already have an account? <Link to="/signin" className="hover:underline transition-colors font-bold" style={{ color: 'hsl(var(--neon-purple))' }}>SIGN IN</Link>.
+              </div>
+            )}
           </div>
         )}
 
