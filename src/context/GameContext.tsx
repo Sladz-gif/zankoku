@@ -269,7 +269,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         const { data: bountiesData, error: bountiesError } = await supabase
           .from('bounties')
           .select('*')
-          .eq('active', true)
           .eq('status', 'active')
           .order('amount', { ascending: false });
 
