@@ -6,9 +6,9 @@ console.log('🔍 Supabase Debug - Environment Variables:');
 console.log('📍 VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
 console.log('🔑 VITE_SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY ? 'PRESENT' : 'NOT FOUND');
 
-// Supabase configuration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY!
+// Supabase configuration with fallback for development/demo
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ieqbuwuppvasrlnybjoe.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImllcWJ1d3VwcHZhc3Jsbnliam9lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNTE4MzIsImV4cCI6MjA5MDcyNzgzMn0.M2gTj0ubvo53ipd2_vWkG1rYNiPiFpv8klJwIKz6ynI';
 
 // Debug: Log final values
 console.log('🌐 Final URL:', supabaseUrl);
