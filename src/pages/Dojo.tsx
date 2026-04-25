@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useGame } from '@/context/GameContext';
 import { getFactionColor } from '@/lib/gameUtils';
 import { Sword, Shield, Target, BookOpen, Award, Zap, Users, ChevronRight, ChevronLeft, Play, Lock, Bot, Brain } from 'lucide-react';
+import ScrollToTop from '@/components/ScrollToTop';
 
 const Dojo = () => {
   const navigate = useNavigate();
@@ -89,7 +90,8 @@ const Dojo = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#030308] text-[#E8E8FF] p-6">
+    <>
+      <div className="min-h-screen bg-[#030308] text-[#E8E8FF] p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-12">
@@ -347,6 +349,9 @@ const Dojo = () => {
         </div>
       </div>
     </div>
+    
+    <ScrollToTop />
+    </>
   );
 };
 

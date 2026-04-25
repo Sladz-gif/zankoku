@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import MobileTopBar from './MobileTopBar';
+import ScrollToTop from '../ScrollToTop';
 
 const AppLayout = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
@@ -105,6 +106,9 @@ const AppLayout = ({ children }: { children: ReactNode }) => {
           </div>
         </div>
       )}
+      
+      {/* Scroll to Top Button */}
+      <ScrollToTop />
     </div>
   );
 };
