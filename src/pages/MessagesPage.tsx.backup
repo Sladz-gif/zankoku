@@ -1,0 +1,851 @@
+import React, { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useGame } from '@/context/GameContext';
+import { getFactionColor, getFactionGlow, formatFullTimestamp } from '@/lib/sharedUtils';
+import { getPresenceText } from '@/lib/messagingUtils';
+import { 
+  ArrowLeft, 
+  Phone, 
+  Video, 
+  MoreHorizontal, 
+  AlertTriangle, 
+  Circle, 
+  Send,
+  X
+} from 'lucide-react';
+
+// Import missing components (these would need to be created or imported from shared components)
+const ConversationList = () => (
+  <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+    No conversations yet
+  </div>
+);
+
+const MessageBubble = ({ message, isOwn }: { message: any; isOwn: boolean }) => (
+  <div style={{ 
+    padding: '12px', 
+    borderRadius: '12px', 
+    background: isOwn ? 'var(--neon-purple)' : 'var(--bg-elevated)',
+    color: isOwn ? 'white' : 'var(--text-primary)',
+    maxWidth: '70%',
+    alignSelf: isOwn ? 'flex-end' : 'flex-start'
+  }}>
+    {message.text}
+  </div>
+);
+
+const SpecialMessageCard = ({ message, isOwn }: { message: any; isOwn: boolean }) => (
+  <div style={{ 
+    padding: '12px', 
+    borderRadius: '12px', 
+    background: 'var(--bg-surface)',
+    border: '1px solid var(--border)',
+    maxWidth: '70%'
+  }}>
+    Special: {message.type}
+  </div>
+);
+
+const DateSeparator = ({ timestamp }: { timestamp: number }) => (
+  <div style={{ 
+    textAlign: 'center', 
+    padding: '8px', 
+    color: 'var(--text-muted)',
+    fontSize: '12px'
+  }}>
+    {new Date(timestamp).toLocaleDateString()}
+  </div>
+);
+
+const TypingIndicator = ({ username }: { username: string }) => (
+  <div style={{ 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '4px',
+    color: 'var(--text-muted)',
+    fontSize: '12px'
+  }}>
+    {username} is typing...
+  </div>
+);
+
+const InputBar = ({ onSendMessage, selectedUser }: { onSendMessage: any; selectedUser: any }) => (
+  <div style={{ 
+    display: 'flex', 
+    gap: '8px', 
+    padding: '12px',
+    borderTop: '1px solid var(--border)'
+  }}>
+    <input 
+      type="text" 
+      placeholder="Type a message..."
+      style={{ 
+        flex: 1, 
+        padding: '8px', 
+        borderRadius: '6px',
+        background: 'var(--bg-elevated)',
+        border: '1px solid var(--border)',
+        color: 'var(--text-primary)'
+      }}
+    />
+    <button style={{ padding: '8px 16px', borderRadius: '6px', background: 'var(--neon-purple)', color: 'white' }}>
+      <Send size={16} />
+    </button>
+  </div>
+);
+
+const CinematicOverlay = ({ user, onClose }: { user: any; onClose: () => void }) => null;
+
+const MessagesPage: React.FC = () => {
+  const { userId } = useParams<{ userId?: string }>();
+  const navigate = useNavigate();
+  const { users, currentUser, enhancedMessages, userPresences, reactToMessage, deleteMessage, pinMessage, sendEnhancedMessage, triggerCinematic, sendMessage } = useGame();
+  
+  const [replyToMessage, setReplyToMessage] = useState<{ id: number; text: string; senderName: string } | undefined>();
+  const [messageText, setMessageText] = useState('');
+  const [showChatPanel, setShowChatPanel] = useState(!!userId);
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  
+  const selectedUserId = userId ? parseInt(userId) : null;
+  const selectedUser = selectedUserId ? users.find(u => u.id === selectedUserId) : undefined;
+  const userPresence = selectedUserId ? userPresences.find(p => p.userId === selectedUserId) : undefined;
+  
+  // Missing functions and variables
+  const handleReply = (message: any) => {
+    setReplyToMessage({
+      id: message.id,
+      text: message.text,
+      senderName: message.senderName
+    });
+  };
+  
+  const handleGoBack = () => {
+    navigate('/messages');
+  };
+  
+  const isTyping = userPresence?.isTyping || false;
+  const showPsychologicalIndicator = false; // Demo flag
+  
+  // Group messages by date for display
+  const groupedMessages = React.useMemo(() => {
+    if (!conversationMessages.length) return [];
+    
+    const groups: any[] = [];
+    let currentDate: string | null = null;
+    
+    conversationMessages.forEach(message => {
+      const messageDate = new Date(message.timestamp).toDateString();
+      
+      if (messageDate !== currentDate) {
+        groups.push({ type: 'date', data: message.timestamp });
+        currentDate = messageDate;
+      }
+      
+      groups.push({ 
+        type: 'message', 
+        data: message,
+        showHeader: true,
+        isGrouped: false
+      });
+    });
+    
+    return groups;
+  }, [conversationMessages]);
+  
+  // Filter messages for this conversation
+  const conversationMessages = React.useMemo(() => {
+    if (!selectedUserId || !currentUser) return [];
+    
+    return enhancedMessages
+      .filter(msg => 
+        (msg.fromId === currentUser.id && msg.toId === selectedUserId) ||
+        (msg.fromId === selectedUserId && msg.toId === currentUser.id)
+      )
+      .sort((a, b) => a.timestamp - b.timestamp);
+  }, [enhancedMessages, selectedUserId, currentUser]);
+  
+  // Get conversation list
+  const conversationList = React.useMemo(() => {
+    if (!currentUser) return [];
+    
+    const conversations = new Map();
+    
+    enhancedMessages.forEach(msg => {
+      const otherUserId = msg.fromId === currentUser.id ? msg.toId : msg.fromId;
+      const otherUser = users.find(u => u.id === otherUserId);
+      
+      if (otherUser && !conversations.has(otherUserId)) {
+        conversations.set(otherUserId, {
+          id: otherUserId,
+          username: otherUser.username,
+          lastMessage: msg.text,
+          timestamp: msg.timestamp,
+          unread: msg.toId === currentUser.id && !msg.read,
+          avatar: otherUser.username[0]?.toUpperCase(),
+          color: getFactionColor(otherUser.anime)
+        });
+      }
+    });
+    
+    return Array.from(conversations.values()).sort((a, b) => b.timestamp - a.timestamp);
+  }, [enhancedMessages, currentUser, users]);
+  
+  // Auto-scroll to bottom
+  React.useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [conversationMessages]);
+  
+  // Handle mobile navigation
+  React.useEffect(() => {
+    setShowChatPanel(!!userId);
+  }, [userId]);
+  
+  const handleReply = (message: any) => {
+    setReplyToMessage({
+  const handleReact = (messageId: number, reaction: any) => {
+    reactToMessage(messageId, reaction);
+  };
+  
+  const handleDelete = (messageId: number, forBoth: boolean) => {
+    deleteMessage(messageId, forBoth);
+  };
+  
+  const handlePin = (messageId: number) => {
+    pinMessage(messageId);
+  };
+  
+  const handleClearReply = () => {
+    setReplyToMessage(undefined);
+  };
+  
+  const handleSendMessage = () => {
+    if (!messageText.trim() || !selectedUserId) return;
+    
+    sendMessage(selectedUserId, messageText.trim());
+    setMessageText('');
+    setReplyToMessage(undefined);
+  };
+  
+  const handleBackToList = () => {
+    navigate('/messages');
+  };
+  
+  const handleConversationClick = (conversationUserId: number) => {
+    navigate(`/messages/${conversationUserId}`);
+  };
+
+  return (
+    <div className="messages-page">
+      {/* Left Panel: Conversation List */}
+      <div className={`messages-list-panel ${showChatPanel ? 'hidden-mobile' : ''}`}>
+        <div style={{ padding: '16px', borderBottom: '1px solid var(--border)' }}>
+          <h2 style={{ 
+            fontFamily: 'Orbitron', 
+            fontSize: '16px', 
+            fontWeight: '700', 
+            color: 'var(--text-primary)',
+            margin: 0
+          }}>
+            Messages
+          </h2>
+        </div>
+        
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {conversationList.length === 0 ? (
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '40px 20px',
+              color: 'var(--text-muted)',
+              fontFamily: 'Rajdhani',
+              fontSize: '14px'
+            }}>
+              No conversations yet. Start messaging other users!
+            </div>
+          ) : (
+            conversationList.map(conversation => (
+              <div 
+                key={conversation.id}
+                className={`conversation-item ${selectedUserId === conversation.id ? 'active' : ''}`}
+                onClick={() => handleConversationClick(conversation.id)}
+              >
+                <div 
+                  className="conversation-avatar"
+                  style={{ 
+                    background: `${conversation.color}20`,
+                    border: `2px solid ${conversation.color}`,
+                    color: conversation.color,
+                    fontFamily: 'Orbitron',
+                    fontSize: '16px',
+                    fontWeight: '700'
+                  }}
+                >
+                  {conversation.avatar}
+                </div>
+                <div className="conversation-info">
+                  <div className="conversation-name">{conversation.username}</div>
+                  <div className="conversation-preview">{conversation.lastMessage}</div>
+                </div>
+                {conversation.unread && (
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: 'var(--neon-purple)',
+                    flexShrink: 0
+                  }} />
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Right Panel: Active Conversation */}
+      {selectedUser && (
+        <div className={`messages-chat-panel ${showChatPanel ? 'visible-mobile' : ''}`}>
+          {/* Chat Header */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px',
+            padding: '16px',
+            borderBottom: '1px solid var(--border)',
+            background: 'var(--bg-surface)'
+          }}>
+            <button 
+              onClick={handleBackToList}
+              style={{ 
+                display: 'none',
+                padding: '8px',
+                borderRadius: '8px',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-primary)'
+              }}
+              className="mobile-back-btn"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            
+            <div 
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: `${getFactionColor(selectedUser.anime)}20`,
+                border: `2px solid ${getFactionColor(selectedUser.anime)}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontFamily: 'Orbitron',
+                fontSize: '14px',
+                fontWeight: '700',
+                color: getFactionColor(selectedUser.anime)
+              }}
+            >
+              {selectedUser.username[0]?.toUpperCase()}
+            </div>
+            
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ 
+                fontFamily: 'Rajdhani', 
+                fontSize: '16px', 
+                fontWeight: '700', 
+                color: 'var(--text-primary)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}>
+                {selectedUser.username}
+              </div>
+              <div style={{ 
+                fontFamily: 'Rajdhani', 
+                fontSize: '12px', 
+                color: 'var(--text-muted)' 
+              }}>
+                {userPresence ? getPresenceText(userPresence.status) : 'Offline'}
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button style={{ 
+                padding: '8px', 
+                borderRadius: '8px', 
+                background: 'var(--bg-elevated)', 
+                border: '1px solid var(--border)',
+                color: 'var(--text-muted)'
+              }}>
+                <Phone size={16} />
+              </button>
+              <button style={{ 
+                padding: '8px', 
+                borderRadius: '8px', 
+                background: 'var(--bg-elevated)', 
+                border: '1px solid var(--border)',
+                color: 'var(--text-muted)'
+              }}>
+                <Video size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* Messages Area */}
+          <div className="chat-messages-area">
+            {conversationMessages.length === 0 ? (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '40px 20px',
+                color: 'var(--text-muted)',
+                fontFamily: 'Rajdhani',
+                fontSize: '14px'
+              }}>
+                Start the conversation with a message!
+              </div>
+            ) : (
+              conversationMessages.map(message => {
+                const isOwn = message.fromId === currentUser?.id;
+                return (
+                  <div key={message.id} className={`message-bubble-wrap ${isOwn ? 'own' : 'other'}`}>
+                    {!isOwn && (
+                      <div 
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          background: `${getFactionColor(selectedUser.anime)}20`,
+                          border: `2px solid ${getFactionColor(selectedUser.anime)}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontFamily: 'Orbitron',
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          color: getFactionColor(selectedUser.anime)
+                        }}
+                      >
+                        {selectedUser.username[0]?.toUpperCase()}
+                      </div>
+                    )}
+                    
+                    <div className={`message-bubble ${isOwn ? 'own' : 'other'}`}>
+                      {message.text}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Reply Preview */}
+          {replyToMessage && (
+            <div style={{ 
+              padding: '12px 16px',
+              background: 'var(--bg-elevated)',
+              borderTop: '1px solid var(--border)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span style={{ 
+                fontFamily: 'Rajdhani', 
+                fontSize: '12px', 
+                color: 'var(--text-muted)' 
+              }}>
+                Replying to {replyToMessage.senderName}
+              </span>
+              <button 
+                onClick={handleClearReply}
+                style={{ 
+                  padding: '4px', 
+                  borderRadius: '4px', 
+                  background: 'var(--bg-surface)', 
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-muted)'
+                }}
+              >
+                <X size={12} />
+              </button>
+            </div>
+          )}
+
+          {/* Chat Input Bar */}
+          <div className="chat-input-bar">
+            <textarea
+              value={messageText}
+              onChange={e => setMessageText(e.target.value)}
+              placeholder="Type a message..."
+              className="chat-input"
+              rows={1}
+              onKeyPress={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+            />
+            <button 
+              onClick={handleSendMessage}
+              className="chat-send-btn"
+              disabled={!messageText.trim()}
+            >
+              <Send size={18} color="white" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Empty State when no conversation selected */}
+      {!selectedUser && (
+        <div className="messages-chat-panel" style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          background: 'var(--bg-surface)'
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ 
+              fontSize: '48px', 
+              color: 'var(--text-muted)', 
+              marginBottom: '16px' 
+            }}>
+              💬
+            </div>
+            <h3 style={{ 
+              fontFamily: 'Orbitron', 
+              fontSize: '18px', 
+              fontWeight: '700', 
+              color: 'var(--text-primary)',
+              marginBottom: '8px'
+            }}>
+              Select a conversation
+            </h3>
+            <p style={{ 
+              fontFamily: 'Rajdhani', 
+              fontSize: '14px', 
+              color: 'var(--text-muted)' 
+            }}>
+              Choose a conversation from the list to start messaging
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+  
+  const handleGoBack = () => {
+    navigate('/messages');
+  };
+  
+  const handleViewProfile = () => {
+    if (selectedUserId) {
+      window.open(`/profile/${selectedUserId}`, '_blank');
+    }
+  };
+  
+  const handleDuelChallenge = () => {
+    if (!selectedUserId || !currentUser) return;
+    
+    // Send duel challenge message
+    const duelMessage = {
+      id: Date.now(),
+      fromId: currentUser.id,
+      toId: selectedUserId,
+      text: "I challenge you to a duel!",
+      timestamp: Date.now(),
+      read: false,
+      status: 'sent' as const,
+      type: 'duel_challenge' as const,
+      intensity: 'legendary' as const,
+      reactions: [],
+      isPinned: false,
+      isDeleted: false,
+      deletedForBoth: false,
+      metadata: {
+        stakes: "500 points and rank position",
+        rules: "No forbidden techniques",
+        expiresAt: Date.now() + 3600000, // 1 hour
+        status: 'pending' as const
+      }
+    };
+    
+    sendEnhancedMessage(selectedUserId, duelMessage.text, duelMessage.type);
+    triggerCinematic('DUEL CHALLENGE SENT!', 'legendary');
+  };
+  
+  const handlePlaceBounty = () => {
+    if (!selectedUserId || !currentUser) return;
+    
+    // Send bounty placement message
+    const bountyMessage = {
+      id: Date.now(),
+      fromId: currentUser.id,
+      toId: selectedUserId,
+      text: "A bounty has been placed on your head!",
+      timestamp: Date.now(),
+      read: false,
+      status: 'sent' as const,
+      type: 'threat' as const,
+      intensity: 'critical' as const,
+      reactions: [],
+      isPinned: false,
+      isDeleted: false,
+      deletedForBoth: false,
+      metadata: {
+        severity: 'high' as const,
+        reported: false,
+        markedSerious: false,
+        moderationFlags: []
+      }
+    };
+    
+    sendEnhancedMessage(selectedUserId, bountyMessage.text, bountyMessage.type);
+    triggerCinematic('BOUNTY PLACED!', 'major');
+  };
+  
+  const handleMoreOptions = () => {
+    // TODO: Implement dropdown menu with options
+    alert('More options coming soon: Clear Chat, Block User, Report User');
+  };
+  
+  // Group messages by date and sender
+  const groupedMessages = React.useMemo(() => {
+    const groups: Array<{
+      type: 'date' | 'message';
+      data: any;
+      date?: number;
+      showHeader?: boolean;
+      isGrouped?: boolean;
+    }> = [];
+    
+    let lastDate: number | null = null;
+    let lastSender: number | null = null;
+    
+    conversationMessages.forEach(message => {
+      // Check if we need a date separator
+      const messageDate = new Date(message.timestamp);
+      messageDate.setHours(0, 0, 0, 0);
+      const messageDateMs = messageDate.getTime();
+      
+      if (lastDate === null || messageDateMs !== lastDate) {
+        groups.push({
+          type: 'date',
+          data: message.timestamp,
+          date: messageDateMs
+        });
+        lastDate = messageDateMs;
+        lastSender = null; // Reset sender when date changes
+      }
+      
+      // Check if this is a new sender group
+      const isNewSender = lastSender !== message.fromId;
+      const timeDiff = message.timestamp - (groups[groups.length - 1]?.data?.timestamp || 0);
+      const isGrouped = !isNewSender && timeDiff < 60000; // 1 minute
+      
+      groups.push({
+        type: 'message',
+        data: message,
+        showHeader: isNewSender,
+        isGrouped: !isGrouped
+      });
+      
+      lastSender = message.fromId;
+    });
+    
+    return groups;
+  }, [conversationMessages]);
+  
+  // Check if user is typing
+  const isTyping = userPresence?.isTyping && userPresence.typingTo === currentUser?.id;
+  
+  // Check for psychological warfare indicator
+  const showPsychologicalIndicator = React.useMemo(() => {
+    if (!currentUser || !selectedUserId) return false;
+    
+    const lastMessage = conversationMessages
+      .filter(m => m.fromId === currentUser.id)
+      .sort((a, b) => b.timestamp - a.timestamp)[0];
+    
+    if (!lastMessage || lastMessage.status !== 'read') return false;
+    
+    const timeSinceRead = Date.now() - lastMessage.timestamp;
+    return timeSinceRead > 30000; // 30 seconds for demo
+  }, [conversationMessages, currentUser, selectedUserId]);
+  
+  if (!selectedUserId) {
+    // Telegram-style conversations list view
+    return (
+      <div className="chat-container">
+        {/* Header */}
+        <div className="chat-header">
+          <h1 className="chat-title">Chat</h1>
+        </div>
+        
+        {/* Conversation List - Full screen on mobile */}
+        <div className="chat-list">
+          <ConversationList />
+        </div>
+      </div>
+    );
+  }
+  
+  const factionColor = selectedUser ? getFactionColor(selectedUser.anime) : '#6666AA';
+  const presenceText = userPresence ? getPresenceText(
+    userPresence.status,
+    userPresence.lastSeen,
+    userPresence.isTyping || false
+  ) : 'Offline';
+  
+  return (
+    <div className="chat-conversation">
+      {/* Header */}
+      <div className="chat-conversation-header">
+        <div className="flex items-center gap-3">
+          {/* Mobile back button */}
+          <button 
+            onClick={handleGoBack}
+            className="chat-back-btn"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          
+          {/* Avatar */}
+          <div className="relative">
+            <div 
+              className="chat-avatar"
+              style={{ 
+                background: `${factionColor}20`, 
+                border: `2px solid ${factionColor}` 
+              }}
+            >
+              {selectedUser?.username?.[0] || '?'}
+            </div>
+            
+            {/* Online indicator */}
+            <div className="chat-online-indicator">
+              <Circle 
+                size={10} 
+                fill="currentColor"
+                style={{ 
+                  color: userPresence?.status === 'online' ? '#00FF88' : 
+                         userPresence?.status === 'idle' ? '#FFD700' : '#6666AA' 
+                }} 
+              />
+            </div>
+          </div>
+          
+          {/* User info */}
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <span className="chat-username">
+                {selectedUser?.username}
+              </span>
+            </div>
+            <span className="chat-presence">
+              {presenceText}
+            </span>
+          </div>
+        </div>
+        
+        {/* Action buttons */}
+        <div className="flex items-center gap-2">
+          <button className="chat-action-btn">
+            <Phone size={20} />
+          </button>
+          <button className="chat-action-btn">
+            <Video size={20} />
+          </button>
+          <button className="chat-action-btn">
+            <MoreHorizontal size={20} />
+          </button>
+        </div>
+      </div>
+
+      {/* Messages area */}
+      <div className="chat-messages">
+        {groupedMessages.map((group, index) => {
+          if (group.type === 'date') {
+            return <DateSeparator key={`date-${index}`} timestamp={group.data} />;
+          }
+
+          const message = group.data;
+          const isOwn = message.fromId === currentUser?.id;
+          const replyToMsg = conversationMessages.find(m => m.id === message.replyTo);
+
+          // Special message cards
+          if (message.type !== 'text') {
+            return (
+              <div key={message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-4`}>
+                <SpecialMessageCard
+                  message={message}
+                  isOwn={isOwn}
+                  onReply={handleReply}
+                  onReact={reactToMessage}
+                  onDelete={deleteMessage}
+                  onPin={pinMessage}
+                />
+              </div>
+            );
+          }
+
+          // Regular text messages
+          return (
+            <div key={message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-4`}>
+              <MessageBubble
+                message={message}
+                isOwn={isOwn}
+                showHeader={group.showHeader}
+                isGrouped={group.isGrouped}
+                replyToMessage={replyToMsg}
+                onReply={handleReply}
+                onReact={reactToMessage}
+                onDelete={deleteMessage}
+                onPin={pinMessage}
+              />
+            </div>
+          );
+        })}
+
+        {/* Typing indicator */}
+        {isTyping && (
+          <div className="flex justify-start mb-4">
+            <TypingIndicator username={selectedUser?.username || ''} />
+          </div>
+        )}
+
+        {/* Psychological warfare indicator */}
+        {showPsychologicalIndicator && (
+          <div className="flex justify-center mb-4">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full" style={{ background: '#FF003C20', border: '1px solid #FF003C40' }}>
+              <AlertTriangle size={14} style={{ color: '#FF003C' }} />
+              <span className="text-xs" style={{ color: '#FF003C' }}>Psychological warfare active</span>
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input area */}
+      <div className="chat-input-area">
+        <InputBar
+          onSendMessage={sendEnhancedMessage}
+          replyToMessage={replyToMessage}
+          clearReply={() => setReplyToMessage(undefined)}
+          selectedUser={selectedUser}
+        />
+      </div>
+
+      {/* Cinematic overlay */}
+      {selectedUser && (
+        <CinematicOverlay
+          user={selectedUser}
+          onClose={() => triggerCinematic(null)}
+        />
+      )}
+    </div>
+  );
+};
+
+export default MessagesPage;

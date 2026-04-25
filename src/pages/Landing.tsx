@@ -153,12 +153,10 @@ const Hero = () => {
             <Zap size={18} fill="currentColor" /> ENTER ZANKOKU
           </button>
           
-          <button onClick={() => navigate('/dashboard')}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 rounded-[3px] font-display font-bold tracking-[2px] transition-all duration-200"
-            style={{ background: 'transparent', border: '1px solid hsl(var(--neon-blue))', color: 'hsl(var(--neon-blue))' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'hsl(var(--neon-blue) / 0.08)'; e.currentTarget.style.boxShadow = '0 0 20px hsl(var(--neon-blue) / 0.2)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.boxShadow = 'none'; }}>
-            <Play size={18} fill="currentColor" /> SEE HOW IT WORKS
+          <button onClick={() => navigate('/feed')}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 rounded-[3px] font-display font-bold tracking-[2px] transition-all duration-200 hover:brightness-110 hover:shadow-[0_0_20px_rgba(0,200,255,0.4)]"
+            style={{ background: 'linear-gradient(135deg, var(--neon-blue), #0099CC)', color: 'white' }}>
+            <Users size={18} fill="currentColor" /> GO TO FEED
           </button>
         </div>
       </div>
@@ -465,30 +463,7 @@ const Footer = () => {
                 No mercy. No refuge. Only rank.
               </div>
             </div>
-            {/* Social Links */}
-            <div className="flex items-center justify-center md:justify-start gap-3">
-              {[
-                { name: 'Twitter', icon: '📱', color: '#1DA1F2' },
-                { name: 'Discord', icon: '💬', color: '#5865F2' },
-                { name: 'YouTube', icon: '🎮', color: '#FF0000' },
-                { name: 'TikTok', icon: '🎵', color: '#000000' }
-              ].map(social => (
-                <a
-                  key={social.name}
-                  href="#"
-                  className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
-                  style={{ 
-                    background: `${social.color}20`, 
-                    border: `1px solid ${social.color}40`,
-                    color: social.color
-                  }}
-                  aria-label={social.name}
-                >
-                  <span className="text-lg">{social.icon}</span>
-                </a>
-              ))}
-            </div>
-          </div>
+                      </div>
 
           {/* Platform Section */}
           <div>

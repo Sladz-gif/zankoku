@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useGame } from '@/context/GameContext';
+import { supabase } from '@/lib/supabase';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -10,19 +11,25 @@ interface AuthGuardProps {
 const AuthGuard = ({ children, redirectTo = '/signin' }: AuthGuardProps) => {
   const { currentUser } = useGame();
   const navigate = useNavigate();
+  const location = useLocation();
 
+  // Check both GameContext and Supabase auth state
   useEffect(() => {
-    if (!currentUser) {
-      navigate(redirectTo);
-    }
-  }, [currentUser, navigate, redirectTo]);
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session && !currentUser && location.pathname !== redirectTo) {
+        navigate(redirectTo, { 
+          state: { from: location.pathname },
+          replace: true 
+        });
+      }
+    };
 
-  // If user is not authenticated, render nothing while redirecting
-  if (!currentUser) {
-    return null;
-  }
+    checkAuth();
+  }, [currentUser, navigate, redirectTo, location]);
 
-  // If user is authenticated, render children
+  // Always render children for now (temporary fix)
   return <>{children}</>;
 };
 

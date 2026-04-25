@@ -1,0 +1,1040 @@
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useGame } from '@/context/GameContext';
+import { getFactionColor, getFactionGlow, getAlignmentLabel } from '@/lib/gameUtils';
+import { FACTION_NAMES, FACTION_RESOURCE, TECHNIQUES, AnimeFaction } from '@/types/game';
+import { Swords, Shield, Star, Skull, AlertTriangle, Lock, CheckCircle, Coins, Zap, Award, TrendingUp, BookOpen, Plus, Upload, Image, Type, X, Globe, UserPlus, UserMinus, Edit2, Save, Users, Heart, MessageCircle, Calendar, MapPin } from 'lucide-react';
+import RankingProgress from '@/components/RankingProgress';
+
+// Mock anime data for demonstration
+const POPULAR_ANIME = [
+  { id: 1, title: 'Naruto Shippuden', genre: 'Action', rating: 4.8, episodes: 500, status: 'completed', image: '🍥' },
+  { id: 2, title: 'Attack on Titan', genre: 'Dark Fantasy', rating: 4.9, episodes: 87, status: 'completed', image: '🔱' },
+  { id: 3, title: 'Jujutsu Kaisen', genre: 'Action', rating: 4.7, episodes: 24, status: 'ongoing', image: '👻' },
+  { id: 4, title: 'Demon Slayer', genre: 'Action', rating: 4.6, episodes: 26, status: 'completed', image: '⚔️' },
+  { id: 5, title: 'One Piece', genre: 'Adventure', rating: 4.9, episodes: 1000, status: 'ongoing', image: '🏴‍☠️' },
+  { id: 6, title: 'Bleach', genre: 'Action', rating: 4.5, episodes: 366, status: 'completed', image: '⚔️' },
+  { id: 7, title: 'My Hero Academia', genre: 'Superhero', rating: 4.4, episodes: 138, status: 'ongoing', image: '🦸' },
+  { id: 8, title: 'Dragon Ball Z', genre: 'Action', rating: 4.8, episodes: 291, status: 'completed', image: '🐉' },
+];
+
+const Profile = () => {
+  const { currentUser, users, toggleFollow, followedUsers } = useGame();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(searchParams.get('tab') || 'overview');
+  const [isEditingBio, setIsEditingBio] = useState(false);
+  const [bioText, setBioText] = useState('');
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [showFollowers, setShowFollowers] = useState(false);
+
+  // Get other users to follow
+  const otherUsers = users.filter(u => u.id !== currentUser?.id);
+
+  useEffect(() => {
+    if (currentUser && followedUsers.includes(currentUser.id)) {
+      setIsFollowing(true);
+    }
+  }, [currentUser, followedUsers]);
+
+  if (!currentUser) return null;
+
+  const color = getFactionColor(currentUser.anime);
+  const glow = getFactionGlow(currentUser.anime);
+  const allTechniques = TECHNIQUES[currentUser.anime];
+
+  const handleSaveBio = () => {
+    // In a real app, this would save to backend
+    console.log('Saving bio:', bioText);
+    setIsEditingBio(false);
+    // Update currentUser bio (mock)
+    currentUser.bio = bioText;
+  };
+
+  const handleFollow = (userId: number) => {
+    toggleFollow(userId);
+  };
+
+  const handleEditBio = () => {
+    setBioText(currentUser.bio || '');
+    setIsEditingBio(true);
+  };
+
+  return (
+    <div className="profile-page">
+      {/* Profile Banner */}
+      <div className="profile-banner">
+        <div className="profile-banner-kanji">残酷</div>
+        
+        {/* Avatar */}
+        <div className="profile-avatar-container">
+          <div className="profile-avatar"
+            style={{ 
+              background: `${color}20`, 
+              border: `3px solid var(--bg-base)`,
+              outline: `2px solid ${color}`,
+              color
+            }}
+          >
+            {currentUser.username[0]?.toUpperCase()}
+          </div>
+        </div>
+      </div>
+
+      {/* Profile Header Info */}
+      <div className="profile-header-info">
+        <div className="profile-name-row">
+          <h1 className="profile-username">{currentUser.username}</h1>
+          
+          {/* Follow/Unfollow button for other users */}
+          {currentUser.id !== users.find(u => u.id === currentUser.id)?.id && (
+            <button 
+              onClick={() => handleFollow(currentUser.id)}
+              className={`profile-action-btn ${isFollowing ? 'profile-following-btn' : 'profile-follow-btn'}`}
+            >
+              {isFollowing ? 'FOLLOWING' : 'FOLLOW'}
+            </button>
+          )}
+        </div>
+
+        <div className="profile-badges-row">
+          <span className="profile-badge" style={{ color }}>
+            {currentUser.points} POINTS
+          </span>
+          <span className="profile-badge" style={{ 
+            color: currentUser.alignment === 'hero' ? '#00C8FF' : currentUser.alignment === 'villain' ? '#FF003C' : '#8B00FF' 
+          }}>
+            {currentUser.alignment === 'hero' ? <Swords size={10} /> : currentUser.alignment === 'villain' ? <Skull size={10} /> : <Shield size={10} />}
+            {getAlignmentLabel(currentUser.alignment)}
+          </span>
+          <span className="profile-badge" style={{ color }}>
+            {FACTION_NAMES[currentUser.anime]}
+          </span>
+          <span className="profile-badge" style={{ color: '#FFD700' }}>
+            <TrendingUp size={10} strokeWidth={1.5} /> RANK #{currentUser.rank}
+          </span>
+        </div>
+      </div>
+
+      {/* Stats Row */}
+      <div className="profile-stats-row">
+        <div className="profile-stat-cell">
+          <span className="profile-stat-number">{currentUser.duelsWon + currentUser.duelsLost}</span>
+          <span className="profile-stat-label">BATTLES</span>
+        </div>
+        <div className="profile-stat-cell">
+          <span className="profile-stat-number">{currentUser.duelsWon}</span>
+          <span className="profile-stat-label">WINS</span>
+        </div>
+        <div className="profile-stat-cell">
+          <span className="profile-stat-number">{currentUser.bountiesClaimed}</span>
+          <span className="profile-stat-label">BOUNTIES</span>
+        </div>
+        <div className="profile-stat-cell">
+          <span className="profile-stat-number">{followedUsers.length}</span>
+          <span className="profile-stat-label">FOLLOWING</span>
+        </div>
+      </div>
+
+      {/* Profile Tabs */}
+      <div className="profile-tabs-bar">
+        {['overview', 'techniques', 'history', 'clan', 'create'].map(t => (
+          <button 
+            key={t} 
+            onClick={() => setTab(t)}
+            className={`profile-tab-btn ${tab === t ? 'active' : ''}`}
+          >
+            {t === 'overview' ? 'OVERVIEW' : t === 'techniques' ? 'TECHNIQUES' : t === 'history' ? 'HISTORY' : t === 'clan' ? 'CLAN' : 'CREATE'}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      <div className="profile-tab-content">
+        {tab === 'overview' && (
+          <div>
+            {/* Bio Section */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <h2 style={{ fontFamily: 'Orbitron', fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                  BIO
+                </h2>
+                <button
+                  onClick={handleEditBio}
+                  style={{ padding: '6px', borderRadius: '6px', background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
+                >
+                  <Edit2 size={14} style={{ color: 'var(--text-muted)' }} />
+                </button>
+              </div>
+              
+              {isEditingBio ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <textarea
+                    value={bioText}
+                    onChange={(e) => setBioText(e.target.value)}
+                    placeholder="Tell the Zankoku community about yourself..."
+                    style={{ 
+                      width: '100%', 
+                      padding: '12px', 
+                      borderRadius: '8px', 
+                      fontFamily: 'Rajdhani', 
+                      fontSize: '14px', 
+                      background: 'var(--bg-elevated)', 
+                      color: 'var(--text-primary)', 
+                      border: '1px solid var(--border)',
+                      minHeight: '120px',
+                      resize: 'none',
+                      outline: 'none'
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={handleSaveBio}
+                      className="profile-action-btn profile-follow-btn"
+                    >
+                      SAVE
+                    </button>
+                    <button
+                      onClick={() => setIsEditingBio(false)}
+                      className="profile-action-btn profile-following-btn"
+                    >
+                      CANCEL
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p style={{ 
+                  fontFamily: 'Rajdhani', 
+                  fontSize: '14px', 
+                  color: 'var(--text-primary)', 
+                  lineHeight: 1.5 
+                }}>
+                  {currentUser.bio || 'No bio yet. Click the edit button to add one!'}
+                </p>
+              )}
+            </div>
+
+            {/* Favorite Anime */}
+            <div style={{ marginBottom: '20px' }}>
+              <h2 style={{ fontFamily: 'Orbitron', fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '12px' }}>
+                FAVORITE ANIME
+              </h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
+                {POPULAR_ANIME.slice(0, 4).map(anime => (
+                  <div key={anime.id} style={{ 
+                    background: 'var(--bg-elevated)', 
+                    border: '1px solid var(--border)', 
+                    borderRadius: '8px', 
+                    padding: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <span style={{ fontSize: '24px' }}>{anime.image}</span>
+                    <div>
+                      <div style={{ 
+                        fontFamily: 'Rajdhani', 
+                        fontSize: '12px', 
+                        fontWeight: '600', 
+                        color: 'var(--text-primary)' 
+                      }}>
+                        {anime.title}
+                      </div>
+                      <div style={{ 
+                        fontFamily: 'Rajdhani', 
+                        fontSize: '10px', 
+                        color: 'var(--text-muted)' 
+                      }}>
+                        {anime.genre} • {anime.rating} ⭐
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Follow Other Users */}
+            <div>
+              <h2 style={{ fontFamily: 'Orbitron', fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '12px' }}>
+                FOLLOW OTHER USERS
+              </h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '12px' }}>
+                {otherUsers.slice(0, 4).map(user => {
+                  const userColor = getFactionColor(user.anime);
+                  const isFollowingUser = followedUsers.includes(user.id);
+                  return (
+                    <div key={user.id} style={{ 
+                      background: 'var(--bg-elevated)', 
+                      border: '1px solid var(--border)', 
+                      borderRadius: '8px', 
+                      padding: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        background: `${userColor}20`,
+                        border: `2px solid ${userColor}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontFamily: 'Orbitron',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        color: userColor
+                      }}>
+                        {user.username[0]?.toUpperCase()}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ 
+                          fontFamily: 'Rajdhani', 
+                          fontSize: '12px', 
+                          fontWeight: '600', 
+                          color: 'var(--text-primary)',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}>
+                          {user.username}
+                        </div>
+                        <div style={{ 
+                          fontFamily: 'Rajdhani', 
+                          fontSize: '10px', 
+                          color: 'var(--text-muted)' 
+                        }}>
+                          {FACTION_NAMES[user.anime]}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleFollow(user.id)}
+                        className={`profile-action-btn ${isFollowingUser ? 'profile-following-btn' : 'profile-follow-btn'}`}
+                        style={{ fontSize: '11px', padding: '4px 12px' }}
+                      >
+                        {isFollowingUser ? 'FOLLOWING' : 'FOLLOW'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === 'techniques' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '16px' }}>
+            {allTechniques.map(tech => {
+              const owned = currentUser.techniques.includes(tech.name);
+              return (
+                <div key={tech.name} style={{
+                  background: 'var(--bg-surface)', 
+                  border: `1px solid ${owned ? color : 'var(--border)'}`, 
+                  borderRadius: '12px', 
+                  padding: '16px',
+                  opacity: owned ? 1 : 0.7
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <h3 style={{ 
+                      fontFamily: 'Orbitron', 
+                      fontSize: '14px', 
+                      fontWeight: '700', 
+                      color: owned ? color : 'var(--text-primary)' 
+                    }}>
+                      {tech.name}
+                    </h3>
+                    {owned && <CheckCircle size={16} style={{ color: 'var(--neon-green)' }} />}
+                  </div>
+                  <p style={{ 
+                    fontFamily: 'Rajdhani', 
+                    fontSize: '12px', 
+                    color: 'var(--text-secondary)', 
+                    marginBottom: '12px',
+                    lineHeight: 1.4
+                  }}>
+                    {tech.description}
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ 
+                      fontFamily: 'Rajdhani', 
+                      fontSize: '11px', 
+                      color: 'var(--neon-orange)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      <Zap size={10} /> {tech.cost}
+                    </span>
+                    {owned && (
+                      <span style={{ 
+                        fontFamily: 'Rajdhani', 
+                        fontSize: '10px', 
+                        color: 'var(--neon-green)',
+                        background: 'var(--neon-green)',
+                        color: 'white',
+                        padding: '2px 8px',
+                        borderRadius: '4px'
+                      }}>
+                        OWNED
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {tab === 'history' && (
+          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <Calendar size={48} style={{ color: 'var(--text-muted)', margin: '0 auto 16px' }} />
+            <h3 style={{ 
+              fontFamily: 'Orbitron', 
+              fontSize: '18px', 
+              fontWeight: '700', 
+              color: 'var(--text-primary)',
+              marginBottom: '8px'
+            }}>
+              Battle History
+            </h3>
+            <p style={{ 
+              fontFamily: 'Rajdhani', 
+              fontSize: '14px', 
+              color: 'var(--text-secondary)' 
+            }}>
+              No battle history yet. Enter the battle lobby to start your journey!
+            </p>
+            <Link
+              to="/battle"
+              className="profile-action-btn profile-follow-btn"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginTop: '16px' }}
+            >
+              <Swords size={16} />
+              Enter Battle Lobby
+            </Link>
+          </div>
+        )}
+
+        {tab === 'clan' && (
+          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <Shield size={48} style={{ color: 'var(--text-muted)', margin: '0 auto 16px' }} />
+            <h3 style={{ 
+              fontFamily: 'Orbitron', 
+              fontSize: '18px', 
+              fontWeight: '700', 
+              color: 'var(--text-primary)',
+              marginBottom: '8px'
+            }}>
+              Clan Information
+            </h3>
+            <p style={{ 
+              fontFamily: 'Rajdhani', 
+              fontSize: '14px', 
+              color: 'var(--text-secondary)' 
+            }}>
+              {currentUser.clanId ? 'You are part of a clan. Visit the Clans page to manage your clan activities.' : 'You are not in a clan yet. Visit the Clans page to join one!'}
+            </p>
+            <Link
+              to="/clans"
+              className="profile-action-btn profile-follow-btn"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginTop: '16px' }}
+            >
+              <Shield size={16} />
+              {currentUser.clanId ? 'Manage Clan' : 'Join Clan'}
+            </Link>
+          </div>
+        )}
+
+        {tab === 'create' && (
+          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <BookOpen size={48} style={{ color: 'var(--text-muted)', margin: '0 auto 16px' }} />
+            <h3 style={{ 
+              fontFamily: 'Orbitron', 
+              fontSize: '18px', 
+              fontWeight: '700', 
+              color: 'var(--text-primary)',
+              marginBottom: '8px'
+            }}>
+              Create Manga
+            </h3>
+            <p style={{ 
+              fontFamily: 'Rajdhani', 
+              fontSize: '14px', 
+              color: 'var(--text-secondary)',
+              marginBottom: '16px'
+            }}>
+              Share your stories and art with the Zankoku community. Create compelling manga series and earn Gold from readers!
+            </p>
+            <Link
+              to="/manga"
+              className="profile-action-btn profile-follow-btn"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            >
+              <BookOpen size={16} />
+              Browse Manga Library
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {/* Bio Section */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 'bold', letterSpacing: '0.05em', color }}>
+          BIO
+        </h2>
+        <button
+          onClick={handleEditBio}
+          style={{ padding: '8px', borderRadius: '8px', transition: 'all 0.2s', background: `${color}10`, border: `1px solid ${color}` }}
+        >
+          <Edit2 size={16} style={{ color }} />
+        </button>
+      </div>
+      
+      {isEditingBio ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <textarea
+            value={bioText}
+            onChange={(e) => setBioText(e.target.value)}
+            placeholder="Tell the Zankoku community about yourself..."
+            style={{ 
+              width: '100%', 
+              padding: '16px', 
+              borderRadius: '8px', 
+              fontFamily: 'var(--font-body)', 
+              fontSize: '14px', 
+              background: 'var(--bg-elevated)', 
+              color: 'var(--text-primary)', 
+              border: '1px solid var(--border)',
+              minHeight: '240px',
+              resize: 'none',
+              outline: 'none'
+            }}
+            rows={9}
+          />
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button
+              onClick={handleSaveBio}
+              style={{ padding: '8px 24px', borderRadius: '8px', fontFamily: 'var(--font-body)', fontWeight: '600', transition: 'all 0.2s', background: 'linear-gradient(135deg, var(--neon-green), #00AA55)', color: '#fff' }}
+            >
+              <Save size={16} style={{ marginRight: '8px' }} />
+              Save Bio
+            </button>
+            <button
+              onClick={() => setIsEditingBio(false)}
+              style={{ padding: '8px 24px', borderRadius: '8px', fontFamily: 'var(--font-body)', fontWeight: '600', transition: 'all 0.2s', background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ minHeight: '220px' }}>
+          {currentUser.bio ? (
+            <p style={{ fontFamily: 'var(--font-body)', fontSize: '14px', lineHeight: '1.6', color: 'var(--text-secondary)' }}>
+              {currentUser.bio}
+            </p>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '32px 0' }}>
+              <Type size={32} style={{ color: 'var(--text-muted)' }} />
+              <p style={{ fontFamily: 'var(--font-body)', fontSize: '14px', marginTop: '16px', color: 'var(--text-muted)' }}>
+                No bio yet. Click the edit button to add your story!
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+          </div>
+
+          {/* Quick Actions & Stats - Takes 1 column */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0px' }}>
+            {/* Actions Card */}
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '8px', marginBottom: '0px' }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 'bold', letterSpacing: '0.05em', marginBottom: '4px', color: factionColor }}>
+                ACTIONS
+              </h2>
+              <button
+                onClick={() => handleFollow(currentUser.id)}
+                style={{ 
+                  width: '100%', 
+                  padding: '4px 4px', 
+                  borderRadius: '8px', 
+                  fontFamily: 'var(--font-body)', 
+                  fontWeight: '600', 
+                  transition: 'all 0.2s', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  gap: '4px', 
+                  marginBottom: '4px', 
+                  fontSize: '14px',
+                  background: isFollowing ? 'var(--bg-elevated)' : 'linear-gradient(135deg, var(--neon-purple), #5500CC)', 
+                  color: isFollowing ? 'var(--text-secondary)' : '#fff',
+                  border: isFollowing ? '1px solid var(--border)' : 'none'
+                }}
+              >
+                {isFollowing ? <UserMinus size={12} /> : <UserPlus size={12} />}
+                {isFollowing ? 'UNFOLLOW' : 'FOLLOW'}
+              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <Link
+                  to="/messages"
+                  style={{ 
+                    width: '100%', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '4px', 
+                    padding: '2px 4px', 
+                    borderRadius: '8px', 
+                    fontFamily: 'var(--font-body)', 
+                    fontSize: '12px', 
+                    transition: 'all 0.2s',
+                    background: 'var(--bg-elevated)', 
+                    border: '1px solid var(--border)', 
+                    color: 'var(--text-primary)',
+                    textDecoration: 'none'
+                  }}
+                >
+                  <MessageCircle size={10} />
+                  Send Message
+                </Link>
+                <Link
+                  to="/battle"
+                  style={{ 
+                    width: '100%', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '4px', 
+                    padding: '2px 4px', 
+                    borderRadius: '8px', 
+                    fontFamily: 'var(--font-body)', 
+                    fontSize: '12px', 
+                    transition: 'all 0.2s',
+                    background: 'var(--bg-elevated)', 
+                    border: '1px solid var(--border)', 
+                    color: 'var(--text-primary)',
+                    textDecoration: 'none'
+                  }}
+                >
+                  <Swords size={10} />
+                  Challenge to Duel
+                </Link>
+                <Link
+                  to="/clans"
+                  style={{ 
+                    width: '100%', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '4px', 
+                    padding: '2px 4px', 
+                    borderRadius: '8px', 
+                    fontFamily: 'var(--font-body)', 
+                    fontSize: '12px', 
+                    transition: 'all 0.2s',
+                    background: 'var(--bg-elevated)', 
+                    border: '1px solid var(--border)', 
+                    color: 'var(--text-primary)',
+                    textDecoration: 'none'
+                  }}
+                >
+                  <Shield size={10} />
+                  View Clan
+                </Link>
+              </div>
+            </div>
+
+            {/* Key Stats */}
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '8px' }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 'bold', letterSpacing: '0.05em', marginBottom: '4px', color }}>
+                KEY STATS
+              </h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    Win Rate
+                  </span>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 'bold', color: 'var(--neon-green)' }}>
+                    {currentUser.duelsWon + currentUser.duelsLost > 0 ? `${Math.round((currentUser.duelsWon / (currentUser.duelsWon + currentUser.duelsLost)) * 100)}%` : '0%'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    Total Wins
+                  </span>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 'bold', color: 'var(--neon-blue)' }}>
+                    {currentUser.duelsWon}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    Rank
+                  </span>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 'bold', color: '#FFD700' }}>
+                    #{currentUser.rank}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Middle Section - Anime and Full Stats - Maximum Width */}
+        <div style={{ display: 'grid', gridTemplateColumns: '6fr 1fr', gap: '0px' }}>
+          {/* Favorite Anime Section - Takes 6 columns */}
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '16px' }}>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 'bold', letterSpacing: '0.05em', marginBottom: '16px', color }}>
+              FAVORITE ANIME
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '4px' }}>
+              {POPULAR_ANIME.slice(0, 16).map(anime => (
+                <div key={anime.id} style={{ cursor: 'pointer' }}>
+                  <div 
+                    style={{ 
+                      position: 'relative', 
+                      overflow: 'hidden', 
+                      borderRadius: '8px', 
+                      padding: '4px', 
+                      transition: 'all 0.2s',
+                      background: 'var(--bg-elevated)', 
+                      border: '1px solid var(--border)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = color;
+                      e.currentTarget.style.boxShadow = `0 0 20px ${color}30`;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
+                      <div style={{ fontSize: '24px' }}>{anime.image}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h3 style={{ fontFamily: 'var(--font-body)', fontWeight: 'bold', fontSize: '12px', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-primary)' }}>
+                          {anime.title}
+                        </h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
+                          <span style={{ padding: '2px 4px', borderRadius: '4px', fontSize: '8px', background: anime.status === 'ongoing' ? 'var(--neon-green)' : 'var(--neon-blue)', color: '#fff' }}>
+                            {anime.status}
+                          </span>
+                          <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>
+                            ⭐ {anime.rating}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ position: 'absolute', top: '4px', right: '4px', opacity: 0, transition: 'opacity 0.2s' }}>
+                      <Heart size={8} style={{ color: 'var(--neon-red)' }} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Full Battle Statistics - Takes 1 column */}
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '8px' }}>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 'bold', letterSpacing: '0.05em', marginBottom: '4px', color }}>
+              BATTLE STATISTICS
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2px' }}>
+              {[
+                { label: 'Duels Won', val: currentUser.duelsWon, icon: Swords, color: 'var(--neon-green)' },
+                { label: 'Duels Lost', val: currentUser.duelsLost, icon: Shield, color: 'var(--neon-red)' },
+                { label: 'Shapes', val: currentUser.shapesCaptured, icon: Star, color: 'var(--neon-blue)' },
+                { label: 'Clan Wars', val: currentUser.clanWars, icon: AlertTriangle, color: 'var(--neon-orange)' },
+                { label: 'Bounties', val: currentUser.bountiesClaimed, icon: Coins, color: 'var(--neon-gold)' },
+                { label: 'Win Rate', val: currentUser.duelsWon + currentUser.duelsLost > 0 ? `${Math.round((currentUser.duelsWon / (currentUser.duelsWon + currentUser.duelsLost)) * 100)}%` : '0%', icon: TrendingUp, color: 'var(--neon-purple)' },
+              ].map((stat, index) => {
+                const Icon = stat.icon;
+                return (
+                  <div key={index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px', borderRadius: '8px', background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Icon size={10} style={{ color: stat.color }} />
+                      <span style={{ fontSize: '12px', fontFamily: 'var(--font-body)', color: 'var(--text-secondary)' }}>
+                        {stat.label}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '12px', fontWeight: 'bold', fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
+                      {stat.val}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Section - Discover Users - Full Width No Space */}
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '0.75rem', padding: '16px', flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 'bold', letterSpacing: '0.05em', color }}>
+              DISCOVER USERS
+            </h2>
+            <button
+              onClick={() => setShowFollowers(!showFollowers)}
+              style={{ fontSize: '14px', fontFamily: 'var(--font-body)', fontWeight: '600', color: 'var(--neon-blue)' }}
+            >
+              {showFollowers ? 'Show Less' : 'Show All'}
+            </button>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '4px' }}>
+            {otherUsers.slice(0, showFollowers ? otherUsers.length : 18).map(user => {
+              const isFollowed = followedUsers.includes(user.id);
+              return (
+                <div key={user.id} style={{ padding: '4px', borderRadius: '8px', transition: 'all 0.2s', background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginBottom: '2px' }}>
+                    <div style={{
+                      width: '20px', 
+                      height: '20px', 
+                      borderRadius: '50%', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      fontFamily: 'var(--font-display)', 
+                      fontSize: '6px', 
+                      fontWeight: 'bold', 
+                      flexShrink: 0,
+                      background: `${getFactionColor(user.anime)}20`, 
+                      border: `1px solid ${getFactionColor(user.anime)}`, 
+                      color: getFactionColor(user.anime)
+                    }}>
+                      {user.username[0]?.toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: 'var(--font-body)', fontWeight: '600', fontSize: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-primary)' }}>
+                        {user.username}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                        <span style={{ padding: '2px 2px', borderRadius: '2px', fontSize: '4px', background: user.alignment === 'hero' ? '#00C8FF20' : user.alignment === 'villain' ? '#FF003C20' : '#8B00FF20', color: user.alignment === 'hero' ? '#00C8FF' : user.alignment === 'villain' ? '#FF003C' : '#8B00FF' }}>
+                          {getAlignmentLabel(user.alignment)}
+                        </span>
+                        <span style={{ fontWeight: '600', fontSize: '4px', color: 'var(--text-secondary)' }}>
+                          #{user.rank}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleFollow(user.id)}
+                    style={{ 
+                      width: '100%', 
+                      padding: '2px 2px', 
+                      borderRadius: '8px', 
+                      fontFamily: 'var(--font-body)', 
+                      fontSize: '6px', 
+                      fontWeight: '600', 
+                      transition: 'all 0.2s',
+                      background: isFollowed ? 'var(--bg-elevated)' : 'linear-gradient(135deg, var(--neon-blue), #0066CC)', 
+                      color: isFollowed ? 'var(--text-secondary)' : '#fff',
+                      border: isFollowed ? '1px solid var(--border)' : 'none'
+                    }}
+                  >
+                    {isFollowed ? <UserMinus size={5} /> : <UserPlus size={5} />}
+                    {isFollowed ? 'UNFOLLOW' : 'FOLLOW'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Profile Tabs */}
+      <div className="mt-8 border-t" style={{ borderColor: 'var(--border)' }}>
+        <div className="flex gap-6 overflow-x-auto">
+          {['overview', 'techniques', 'history', 'clan', 'create'].map(t => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className="pb-4 font-body text-sm font-semibold capitalize flex items-center gap-2 whitespace-nowrap transition-all duration-200"
+              style={{ 
+                color: tab === t ? color : 'var(--text-muted)', 
+                borderBottom: tab === t ? `2px solid ${color}` : '2px solid transparent',
+                minWidth: '120px'
+              }}
+            >
+              {t === 'ranking' && <TrendingUp size={14} />}
+              {t === 'create' && <BookOpen size={14} />}
+              {t === 'create' ? 'Create Manga' : t}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div className="mt-6">
+        {tab === 'overview' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <RankingProgress user={currentUser} />
+            </div>
+            <div className="neon-card p-6">
+              <h3 className="font-display text-lg font-bold tracking-wider mb-4" style={{ color }}>
+                RESOURCES
+              </h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-body text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    {FACTION_RESOURCE[currentUser.anime]}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Zap size={16} style={{ color }} />
+                    <div className="flex-1 h-3 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+                      <div 
+                        className="h-full rounded-full resource-bar" 
+                        style={{ 
+                          width: `${currentUser.resource}%`, 
+                          background: `linear-gradient(90deg, ${color}, ${glow})` 
+                        }} 
+                      />
+                    </div>
+                  </div>
+                  <span className="font-display text-xs font-bold" style={{ color }}>
+                    {currentUser.resource}/{currentUser.maxResource}
+                  </span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="font-body text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    Currency
+                  </span>
+                  <div className="flex gap-2">
+                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'var(--bg-elevated)', border: '1px solid #CD7F32' }}>
+                      <Coins size={12} style={{ color: '#CD7F32' }} />
+                      <span className="font-display text-sm font-bold" style={{ color: '#CD7F32' }}>
+                        {currentUser.currency.bronze}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'var(--bg-elevated)', border: '1px solid #C0C0C0' }}>
+                      <Coins size={12} style={{ color: '#C0C0C0' }} />
+                      <span className="font-display text-sm font-bold" style={{ color: '#C0C0C0' }}>
+                        {currentUser.currency.silver}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'var(--bg-elevated)', border: '1px solid #FFD700' }}>
+                      <Coins size={12} style={{ color: '#FFD700' }} />
+                      <span className="font-display text-sm font-bold" style={{ color: '#FFD700' }}>
+                        {currentUser.currency.gold}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === 'techniques' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {allTechniques.map(tech => {
+              const owned = currentUser.techniques.includes(tech.name);
+              return (
+                <div key={tech.name} className="neon-card p-5 relative overflow-hidden transition-all duration-200 hover:scale-105"
+                  style={{
+                    background: owned ? `${color}10` : 'var(--bg-surface)',
+                    border: `1px solid ${owned ? `${color}40` : 'var(--border)'}`,
+                    opacity: owned ? 1 : 0.7,
+                  }}
+                >
+                  {!owned && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                      <Lock size={32} strokeWidth={1.5} style={{ color: '#333355' }} />
+                    </div>
+                  )}
+                  {owned && (
+                    <CheckCircle size={16} strokeWidth={1.5} className="absolute top-3 right-3" style={{ color: 'var(--neon-green)' }} />
+                  )}
+                  <h4 className="font-display text-sm font-bold mb-2" style={{ color: owned ? color : 'var(--text-primary)' }}>
+                    {tech.name}
+                  </h4>
+                  <p className="font-body text-xs mb-3 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                    {tech.description}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="font-display text-xs font-bold flex items-center gap-1" style={{ color: 'var(--neon-orange)' }}>
+                      <Zap size={10} strokeWidth={1.5} /> Cost: {tech.cost}
+                    </span>
+                    {owned && (
+                      <span className="text-xs font-semibold px-2 py-1 rounded" style={{ 
+                        background: 'var(--neon-green)', 
+                        color: '#fff' 
+                      }}>
+                        OWNED
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {tab === 'history' && (
+          <div className="neon-card p-8 text-center">
+            <Calendar size={48} style={{ color: 'var(--text-muted)' }} />
+            <h3 className="font-display text-xl font-bold tracking-wider mt-4 mb-2" style={{ color: 'var(--text-primary)' }}>
+              Battle History
+            </h3>
+            <p className="font-body text-sm" style={{ color: 'var(--text-secondary)' }}>
+              No battle history yet. Enter the battle lobby to start your journey!
+            </p>
+            <Link
+              to="/battle"
+              className="inline-flex items-center gap-2 mt-6 px-6 py-3 rounded-lg font-body font-semibold transition-all duration-200"
+              style={{ background: 'linear-gradient(135deg, var(--neon-purple), #5500CC)', color: '#fff' }}
+            >
+              <Swords size={18} />
+              Enter Battle Lobby
+            </Link>
+          </div>
+        )}
+
+        {tab === 'clan' && (
+          <div className="neon-card p-8 text-center">
+            <Shield size={48} style={{ color: 'var(--text-muted)' }} />
+            <h3 className="font-display text-xl font-bold tracking-wider mt-4 mb-2" style={{ color: 'var(--text-primary)' }}>
+              Clan Information
+            </h3>
+            <p className="font-body text-sm" style={{ color: 'var(--text-secondary)' }}>
+              {currentUser.clanId ? 'You are part of a clan. Visit the Clans page to manage your clan activities.' : 'You are not in a clan yet. Visit the Clans page to join one!'}
+            </p>
+            <Link
+              to="/clans"
+              className="inline-flex items-center gap-2 mt-6 px-6 py-3 rounded-lg font-body font-semibold transition-all duration-200"
+              style={{ background: 'linear-gradient(135deg, var(--neon-purple), #5500CC)', color: '#fff' }}
+            >
+              <Shield size={18} />
+              {currentUser.clanId ? 'Manage Clan' : 'Join Clan'}
+            </Link>
+          </div>
+        )}
+
+        {tab === 'create' && (
+          <div className="neon-card p-8 text-center">
+            <BookOpen size={48} style={{ color: 'var(--text-muted)' }} />
+            <h3 className="font-display text-xl font-bold tracking-wider mt-4 mb-2" style={{ color: 'var(--text-primary)' }}>
+              Create Manga
+            </h3>
+            <p className="font-body text-sm" style={{ color: 'var(--text-secondary)' }}>
+              Share your stories and art with the Zankoku community. Create compelling manga series and earn Gold from readers!
+            </p>
+            <div className="mt-6">
+              <Link
+                to="/manga"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-body font-semibold transition-all duration-200"
+                style={{ background: 'linear-gradient(135deg, #FF6B35, #FF8C42)', color: '#fff' }}
+              >
+                <BookOpen size={18} />
+                Browse Manga Library
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Profile;

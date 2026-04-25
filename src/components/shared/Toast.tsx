@@ -16,8 +16,14 @@ export const Toast: React.FC<ToastProps> = ({
   onClose,
   factionColor = 'var(--neon-blue)'
 }) => {
+  const [isExiting, setIsExiting] = React.useState(false);
+
   useEffect(() => {
-    const timer = setTimeout(onClose, duration);
+    const timer = setTimeout(() => {
+      setIsExiting(true);
+      setTimeout(onClose, 200);
+    }, duration);
+
     return () => clearTimeout(timer);
   }, [duration, onClose]);
 
@@ -38,21 +44,19 @@ export const Toast: React.FC<ToastProps> = ({
 
   return (
     <div 
-      className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-[var(--bg-surface)] border-l-4 rounded-lg p-4 shadow-2xl min-w-[300px] max-w-md animate-slide-in-right"
-      style={{ 
-        borderLeftColor: color,
-        boxShadow: `0 10px 40px rgba(0, 0, 0, 0.6), 0 0 20px ${color}20`
-      }}
+      className={`toast ${isExiting ? 'exiting' : ''}`}
+      style={{ borderLeftColor: color }}
     >
       <Icon size={20} strokeWidth={1.5} style={{ color }} />
-      <p className="flex-1 text-sm font-['Rajdhani'] text-[var(--text-primary)]">
+      <p className="toast-message">
         {message}
       </p>
       <button
         onClick={onClose}
-        className="p-1 rounded hover:bg-[var(--bg-elevated)] transition-colors"
+        className="btn-icon"
+        style={{ position: 'absolute', top: '12px', right: '12px' }}
       >
-        <X size={16} strokeWidth={1.5} className="text-[var(--text-secondary)]" />
+        <X size={16} strokeWidth={1.5} />
       </button>
     </div>
   );

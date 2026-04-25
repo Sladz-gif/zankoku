@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useGame } from '@/context/GameContext';
-import { Coins } from 'lucide-react';
+import { Coins, ChevronLeft } from 'lucide-react';
 import { AnimeFaction, FACTION_NAMES, FACTION_RESOURCE, TECHNIQUES, FORBIDDEN_TECHNIQUES, Technique } from '@/types/game';
 import { getFactionColor, getFactionGlow } from '@/lib/gameUtils';
 import { battleSystem, calloutGenerator } from '@/systems/BattleSystem';
@@ -20,18 +20,54 @@ type Shape = Square | Triangle;
 const DotWarsGame = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { updateCurrency, currentUser, handleForbiddenTechniqueUse, getResourceStatus, refillUserResources } = useGame();
+  const { updateCurrency, currentUser, handleForbiddenTechniqueUse, getResourceStatus, refillUserResources, users } = useGame();
+  
+  // Parse URL parameters for AI opponents
+  const searchParams = new URLSearchParams(location.search);
+  const opponentParam = searchParams.get('opponent');
+  const duelType = searchParams.get('type') || 'dot';
+  
+  // Check if this is an AI match
+  const isAIMatch = opponentParam?.startsWith('ai-');
+  const aiDifficulty: AIDifficulty = opponentParam === 'ai-tutorial' ? 'tutorial' : 
+                                       opponentParam === 'ai-practice' ? 'practice' : 
+                                       opponentParam === 'ai-master' ? 'master' : 'practice';
+  
+  // Handle state vs URL parameters
   const state = location.state as { p1Anime: AnimeFaction; p2Anime: AnimeFaction; p2Username?: string; gridSize: number; duelType: string; difficulty?: 'normal' | 'hard' | 'hardest'; mode?: 'tutorial' | 'practice' | 'master' | 'pvp' } | null;
 
-  const p1Anime = state?.p1Anime || 'jjk';
-  const p2Anime = state?.p2Anime || 'naruto';
-  const p2Username = state?.p2Username || 'Player 2';
+  // Game configuration
+  const p1Anime = currentUser?.anime || 'jjk';
+  let p2Anime: AnimeFaction = 'naruto';
+  let p2Username: string = 'Player 2';
+  let gameMode: 'tutorial' | 'practice' | 'master' | 'pvp' = 'pvp';
+  
+  if (isAIMatch) {
+    // AI match configuration
+    gameMode = aiDifficulty;
+    p2Anime = 'jjk'; // Default AI faction, could be made configurable
+    p2Username = aiDifficulty === 'tutorial' ? 'Sensei Bot' : 
+                 aiDifficulty === 'practice' ? 'Rival Bot' : 
+                 aiDifficulty === 'master' ? 'Master Bot' : 'AI';
+  } else if (state) {
+    // Legacy state-based configuration
+    p2Anime = state.p2Anime;
+    p2Username = state.p2Username || 'Player 2';
+    gameMode = state.mode || 'pvp';
+  } else if (opponentParam && !opponentParam.startsWith('ai-')) {
+    // Human opponent from URL
+    const opponentId = parseInt(opponentParam);
+    const opponent = users.find(u => u.id === opponentId);
+    if (opponent) {
+      p2Anime = opponent.anime;
+      p2Username = opponent.username;
+      gameMode = 'pvp';
+    }
+  }
+  
   const gridSize = state?.gridSize || 4;
-  const duelType = state?.duelType || 'square';
   const difficulty = state?.difficulty || 'normal';
-  const gameMode = state?.mode || 'pvp'; // 'tutorial', 'practice', 'master', or 'pvp'
   const isAIMode = ['tutorial', 'practice', 'master'].includes(gameMode);
-  const aiDifficulty: AIDifficulty = gameMode === 'tutorial' ? 'tutorial' : gameMode === 'practice' ? 'practice' : gameMode === 'master' ? 'master' : 'practice';
   
   // AI instance (Player 2 is AI in Dojo mode)
   const aiRef = useRef(isAIMode ? createDotWarsAI(p2Anime, aiDifficulty) : null);
@@ -86,6 +122,43 @@ const DotWarsGame = () => {
   const p2ForbiddenTechs = FORBIDDEN_TECHNIQUES[p2Anime];
 
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  const [boardSize, setBoardSize] = useState(300);
+  
+  // Dynamic board size calculation
+  useEffect(() => {
+    const calculateBoardSize = () => {
+      const isMobile = window.innerWidth < 768;
+      const isTablet = window.innerWidth < 1024;
+      
+      // Horizontal: account for sidebar and padding
+      const sidebarWidth = isMobile ? 0 : isTablet ? 64 : 240;
+      const pagePadding = isMobile ? 32 : 64;
+      const availableWidth = window.innerWidth - sidebarWidth - pagePadding;
+      
+      // Vertical: account for headers, HUDs, power moves row, navbars
+      const topElements = isMobile ? 56 + 80 : 80; // topbar + player HUD
+      const bottomElements = isMobile ? 64 + 120 : 120; // bottomnav + power moves
+      const availableHeight = window.innerHeight - topElements - bottomElements;
+      
+      // Use the smaller dimension so board always fits
+      const size = Math.max(240, Math.min(availableWidth, availableHeight));
+      setBoardSize(size);
+    };
+    
+    calculateBoardSize();
+    
+    const observer = new ResizeObserver(calculateBoardSize);
+    observer.observe(document.documentElement);
+    
+    return () => observer.disconnect();
+  }, []);
+
+  // Cell size based on board size and grid
+  const cellSize = Math.max(18, Math.floor(boardSize / (gridSize + 0.5)));
+  const dotRadius = Math.max(4, Math.floor(cellSize * 0.11));
+  const lineStrokeWidth = Math.max(2, Math.floor(cellSize * 0.07));
+  const svgPadding = dotRadius * 2;
+  const svgSize = (gridSize - 1) * cellSize + svgPadding * 2;
   
   // Enhanced Battle System State
   const [battleState, setBattleState] = useState<{ player1: string; player2: string }>({ player1: 'normal', player2: 'normal' });
@@ -201,15 +274,15 @@ const DotWarsGame = () => {
     shapesToDestroy.forEach(({ type, shape }) => {
       if (type === 'square') {
         const square = shape as Square;
-        const targetX = PADDING + square.c * DOT_SPACING + DOT_SPACING / 2;
-        const targetY = PADDING + square.r * DOT_SPACING + DOT_SPACING / 2;
+        const targetX = dotRadius * 2 + square.c * cellSize + cellSize / 2;
+        const targetY = dotRadius * 2 + square.r * cellSize + cellSize / 2;
         addVisualEffect('explosion', '#FF003C', targetX, targetY);
         setSquares(prev => prev.filter(s => !(s.r === square.r && s.c === square.c)));
         destroyedCount++;
       } else if (type === 'triangle') {
         const triangle = shape as Triangle;
-        const targetX = PADDING + triangle.c1 * DOT_SPACING + DOT_SPACING / 2;
-        const targetY = PADDING + triangle.r1 * DOT_SPACING + DOT_SPACING / 2;
+        const targetX = dotRadius * 2 + triangle.c1 * cellSize + cellSize / 2;
+        const targetY = dotRadius * 2 + triangle.r1 * cellSize + cellSize / 2;
         addVisualEffect('explosion', '#FF003C', targetX, targetY);
         setTriangles(prev => prev.filter(t => 
           !(t.r1 === triangle.r1 && t.c1 === triangle.c1 && t.r2 === triangle.r2 && t.c2 === triangle.c2 && t.r3 === triangle.r3 && t.c3 === triangle.c3)
@@ -326,12 +399,6 @@ const DotWarsGame = () => {
     const timer = setTimeout(executeAITurn, 600);
     return () => clearTimeout(timer);
   }, [isAIMode, currentPlayer, gameOver, aiMoveInProgress, lines, squares, triangles, p1Resource, p2Resource, scores, turnCount, momentumLevel]);
-  
-  // Responsive sizing
-  const maxBoardWidth = windowWidth < 768 ? Math.min(windowWidth - 40, 350) : windowWidth < 1024 ? 450 : 500;
-  const DOT_SPACING = Math.min(60, maxBoardWidth / gridSize);
-  const PADDING = windowWidth < 768 ? 20 : 30;
-  const svgSize = PADDING * 2 + (gridSize - 1) * DOT_SPACING;
 
   const lineExists = useCallback((r1: number, c1: number, r2: number, c2: number) => {
     return lines.some(l =>
@@ -708,15 +775,15 @@ const DotWarsGame = () => {
           // Randomly choose between squares and triangles
           if (opponentSquares.length > 0 && (opponentTriangles.length === 0 || Math.random() < 0.6)) {
             target = opponentSquares[Math.floor(Math.random() * opponentSquares.length)];
-            targetX = PADDING + target.c * DOT_SPACING + DOT_SPACING / 2;
-            targetY = PADDING + target.r * DOT_SPACING + DOT_SPACING / 2;
+            targetX = svgPadding + target.c * cellSize + cellSize / 2;
+            targetY = svgPadding + target.r * cellSize + cellSize / 2;
             
             // Remove the square
             setSquares(prev => prev.filter(s => !(s.r === target.r && s.c === target.c)));
           } else if (opponentTriangles.length > 0) {
             target = opponentTriangles[Math.floor(Math.random() * opponentTriangles.length)];
-            targetX = PADDING + target.c1 * DOT_SPACING + DOT_SPACING / 2;
-            targetY = PADDING + target.r1 * DOT_SPACING + DOT_SPACING / 2;
+            targetX = svgPadding + target.c1 * cellSize + cellSize / 2;
+            targetY = svgPadding + target.r1 * cellSize + cellSize / 2;
             
             // Remove the triangle
             setTriangles(prev => prev.filter(t => !(t.r1 === target.r1 && t.c1 === target.c1 && t.r2 === target.r2 && t.c2 === target.c2 && t.r3 === target.r3 && t.c3 === target.c3)));
@@ -742,15 +809,15 @@ const DotWarsGame = () => {
           // Randomly choose between squares and triangles
           if (opponentSquares.length > 0 && (opponentTriangles.length === 0 || Math.random() < 0.6)) {
             target = opponentSquares[Math.floor(Math.random() * opponentSquares.length)];
-            targetX = PADDING + target.c * DOT_SPACING + DOT_SPACING / 2;
-            targetY = PADDING + target.r * DOT_SPACING + DOT_SPACING / 2;
+            targetX = svgPadding + target.c * cellSize + cellSize / 2;
+            targetY = svgPadding + target.r * cellSize + cellSize / 2;
             
             // Steal the square
             setSquares(prev => prev.map(s => s.r === target.r && s.c === target.c ? { ...s, player: currentPlayer } : s));
           } else if (opponentTriangles.length > 0) {
             target = opponentTriangles[Math.floor(Math.random() * opponentTriangles.length)];
-            targetX = PADDING + target.c1 * DOT_SPACING + DOT_SPACING / 2;
-            targetY = PADDING + target.r1 * DOT_SPACING + DOT_SPACING / 2;
+            targetX = svgPadding + target.c1 * cellSize + cellSize / 2;
+            targetY = svgPadding + target.r1 * cellSize + cellSize / 2;
             
             // Steal the triangle
             setTriangles(prev => prev.map(t => 
@@ -807,8 +874,8 @@ const DotWarsGame = () => {
           
           if (scoredLines.length > 0 && scoredLines[0].score > 0) {
             const [r1, c1, r2, c2] = scoredLines[0].line;
-            const targetX = PADDING + ((c1 + c2) / 2) * DOT_SPACING + DOT_SPACING / 2;
-            const targetY = PADDING + ((r1 + r2) / 2) * DOT_SPACING + DOT_SPACING / 2;
+            const targetX = svgPadding + ((c1 + c2) / 2) * cellSize + cellSize / 2;
+            const targetY = svgPadding + ((r1 + r2) / 2) * cellSize + cellSize / 2;
             
             addVisualEffect('reveal', '#FFD700', targetX, targetY);
             setActiveEffects(prev => [...prev, `Best move: (${r1},${c1})→(${r2},${c2}) [Score: ${scoredLines[0].score}]`]);
@@ -890,8 +957,8 @@ const DotWarsGame = () => {
           }
         }
         
-        const targetX = PADDING + targetCol * DOT_SPACING + DOT_SPACING / 2;
-        const targetY = PADDING + targetRow * DOT_SPACING + DOT_SPACING / 2;
+        const targetX = svgPadding + targetCol * cellSize + cellSize / 2;
+        const targetY = svgPadding + targetRow * cellSize + cellSize / 2;
         
         addVisualEffect('domain', color, targetX, targetY);
         setActiveEffects(prev => [...prev, `Domain Expansion at (${targetRow},${targetCol})`]);
@@ -983,8 +1050,8 @@ const DotWarsGame = () => {
           const blockedLine = { r1, c1, r2, c2, player: 0 }; // player 0 indicates blocked
           setLines(prev => [...prev, blockedLine]);
           
-          const targetX = PADDING + ((c1 + c2) / 2) * DOT_SPACING + DOT_SPACING / 2;
-          const targetY = PADDING + ((r1 + r2) / 2) * DOT_SPACING + DOT_SPACING / 2;
+          const targetX = svgPadding + ((c1 + c2) / 2) * cellSize + cellSize / 2;
+          const targetY = svgPadding + ((r1 + r2) / 2) * cellSize + cellSize / 2;
           addVisualEffect('barrier', color, targetX, targetY);
           setActiveEffects(prev => [...prev, `Strategic line blocked`]);
         } else {
@@ -994,8 +1061,8 @@ const DotWarsGame = () => {
             const blockedLine = { r1, c1, r2, c2, player: 0 };
             setLines(prev => [...prev, blockedLine]);
             
-            const targetX = PADDING + ((c1 + c2) / 2) * DOT_SPACING + DOT_SPACING / 2;
-            const targetY = PADDING + ((r1 + r2) / 2) * DOT_SPACING + DOT_SPACING / 2;
+            const targetX = svgPadding + ((c1 + c2) / 2) * cellSize + cellSize / 2;
+            const targetY = svgPadding + ((r1 + r2) / 2) * cellSize + cellSize / 2;
             addVisualEffect('barrier', color, targetX, targetY);
             setActiveEffects(prev => [...prev, 'Random line blocked']);
           }
@@ -1045,8 +1112,8 @@ const DotWarsGame = () => {
               setBonusTurn(true);
             }
             
-            const targetX = PADDING + startC * DOT_SPACING + DOT_SPACING / 2;
-            const targetY = PADDING + startR * DOT_SPACING + DOT_SPACING / 2;
+            const targetX = svgPadding + startC * cellSize + cellSize / 2;
+            const targetY = svgPadding + startR * cellSize + cellSize / 2;
             addVisualEffect('chain', color, targetX, targetY);
             setActiveEffects(prev => [...prev, `${connectionsToMake} connections from (${startR},${startC})`]);
           }
@@ -1108,8 +1175,8 @@ const DotWarsGame = () => {
           
           const totalRemoved = removedSquares + removedTriangles;
           if (totalRemoved > 0) {
-            const targetX = PADDING + gridSize * DOT_SPACING / 2;
-            const targetY = PADDING + targetRow * DOT_SPACING + DOT_SPACING / 2;
+            const targetX = svgPadding + gridSize * cellSize / 2;
+            const targetY = svgPadding + targetRow * cellSize + cellSize / 2;
             addVisualEffect('beam', '#FF4400', targetX, targetY);
             setScores(prev => { const n = [...prev]; n[opponentIdx] -= totalRemoved; return n; });
             setActiveEffects(prev => [...prev, `Row ${targetRow} wiped (${totalRemoved} shapes)`]);
@@ -1139,8 +1206,8 @@ const DotWarsGame = () => {
         if (availableLines.length > 0) {
           const [r1, c1, r2, c2] = availableLines[Math.floor(Math.random() * availableLines.length)];
           
-          const targetX = PADDING + ((c1 + c2) / 2) * DOT_SPACING + DOT_SPACING / 2;
-          const targetY = PADDING + ((r1 + r2) / 2) * DOT_SPACING + DOT_SPACING / 2;
+          const targetX = svgPadding + ((c1 + c2) / 2) * cellSize + cellSize / 2;
+          const targetY = svgPadding + ((r1 + r2) / 2) * cellSize + cellSize / 2;
           
           addVisualEffect('confusion', '#FFD700', targetX, targetY);
           setActiveEffects(prev => [...prev, `Random line placed at (${r1},${c1})→(${r2},${c2})`]);
@@ -1375,7 +1442,7 @@ const DotWarsGame = () => {
             </div>
           )}
           <div className="flex gap-4 justify-center">
-            <button onClick={() => navigate('/battle')} className="px-6 py-3 rounded-md font-display text-sm font-bold tracking-widest"
+            <button onClick={() => navigate('/battle-lobby')} className="px-6 py-3 rounded-md font-display text-sm font-bold tracking-widest"
               style={{ background: '#FF003C20', color: '#FF003C', border: '1px solid #FF003C40' }}>
               BACK TO LOBBY
             </button>
@@ -1530,109 +1597,53 @@ const DotWarsGame = () => {
 
         {/* Score bar */}
         <div className="flex items-center justify-between mb-6">
-          <div className={`p-4 rounded-lg flex-1 mr-2 ${currentPlayer === 1 ? 'active-pulse' : ''}`}
+          <div className={`p-3 rounded-lg flex-1 mr-2 ${currentPlayer === 1 ? 'active-pulse' : ''}`}
             style={{ background: '#080812', border: `2px solid ${currentPlayer === 1 ? p1Color : '#1A1A2E'}`, boxShadow: currentPlayer === 1 ? `0 0 20px ${p1Color}30` : 'none' }}>
-            <div className="font-display text-xs font-bold tracking-wider mb-1" style={{ color: p1Color }}>P1 · {currentUser?.username || 'Player 1'}</div>
-            <div className="font-display text-3xl font-black" style={{ color: p1Color }}>{scores[0]}</div>
-            <div className="mt-2 h-2 rounded-full overflow-hidden" style={{ background: '#1A1A2E' }}>
-              <div className="h-full rounded-full resource-bar" style={{ width: `${p1Resource}%`, background: `linear-gradient(90deg, ${p1Color}, ${p1Glow})` }} />
-            </div>
-            <div className="font-body text-xs mt-1" style={{ color: '#6666AA' }}>{FACTION_RESOURCE[p1Anime]}: {p1Resource}/100</div>
-            
-            {/* Momentum Bar */}
-            <div className="mt-2 h-2 rounded-full overflow-hidden" style={{ background: '#1A1A2E' }}>
-              <div 
-                className="h-full rounded-full transition-all duration-300" 
-                style={{ 
-                  width: `${momentumLevel.player1}%`, 
-                  background: momentum.player1 === 'legendary' ? 'linear-gradient(90deg, #FFD700, #FFA500)' :
-                             momentum.player1 === 'peak' ? 'linear-gradient(90deg, #FF6B00, #FF4500)' :
-                             momentum.player1 === 'high' ? 'linear-gradient(90deg, #00FF88, #00CC66)' :
-                             momentum.player1 === 'normal' ? 'linear-gradient(90deg, #6666AA, #555599)' :
-                             momentum.player1 === 'low' ? 'linear-gradient(90deg, #FF6B6B, #FF4444)' :
-                             'linear-gradient(90deg, #FF003C, #CC0020)'
-                }} 
-              />
-            </div>
-            <div className="font-body text-xs mt-1" style={{ 
-              color: momentum.player1 === 'legendary' ? '#FFD700' :
-                     momentum.player1 === 'peak' ? '#FF6B00' :
-                     momentum.player1 === 'high' ? '#00FF88' :
-                     momentum.player1 === 'normal' ? '#6666AA' :
-                     momentum.player1 === 'low' ? '#FF6B6B' :
-                     '#FF003C'
-            }}>
-              MOMENTUM: {momentum.player1.toUpperCase()} ({momentumLevel.player1}%)
-            </div>
-            
-            {/* Battle State Indicator */}
-            {battleState.player1 !== 'normal' && (
-              <div className={`mt-2 text-xs font-bold text-center px-2 py-1 rounded ${
-                battleState.player1 === 'awakening' ? 'bg-purple-600 text-white' :
-                battleState.player1 === 'last_stand' ? 'bg-red-600 text-white' :
-                battleState.player1 === 'overload' ? 'bg-orange-600 text-white' :
-                battleState.player1 === 'forbidden' ? 'bg-black text-red-400 border border-red-400' :
-                'bg-gray-600 text-white'
-              }`}>
-                {battleState.player1.toUpperCase().replace('_', ' ')}
+            <div className="flex items-center justify-between mb-2">
+              <div className="font-display text-xs font-bold tracking-wider" style={{ color: p1Color }}>
+                {currentUser?.username || 'Player 1'}
               </div>
-            )}
+              <div className="text-xs text-[#6666AA]">
+                {p1Anime.toUpperCase()}
+              </div>
+            </div>
+            <div className="font-display text-2xl font-black text-center mb-2" style={{ color: p1Color }}>{scores[0]}</div>
+            <div className="space-y-1">
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#1A1A2E' }}>
+                <div className="h-full rounded-full resource-bar transition-all duration-300" style={{ width: `${p1Resource}%`, background: `linear-gradient(90deg, ${p1Color}, ${p1Glow})` }} />
+              </div>
+              <div className="flex justify-between text-xs" style={{ color: '#6666AA' }}>
+                <span>{FACTION_RESOURCE[p1Anime]}</span>
+                <span>{p1Resource}/100</span>
+              </div>
+            </div>
           </div>
 
           <div className="font-display text-xl font-bold px-4" style={{ color: '#333355' }}>VS</div>
 
-          <div className={`p-4 rounded-lg flex-1 ml-2 ${currentPlayer === 2 ? 'active-pulse' : ''}`}
+          <div className={`p-3 rounded-lg flex-1 ml-2 ${currentPlayer === 2 ? 'active-pulse' : ''}`}
             style={{ background: '#080812', border: `2px solid ${currentPlayer === 2 ? p2Color : '#1A1A2E'}`, boxShadow: currentPlayer === 2 ? `0 0 20px ${p2Color}30` : 'none' }}>
-            <div className="font-display text-xs font-bold tracking-wider mb-1 text-right flex items-center justify-end gap-2" style={{ color: p2Color }}>
-              <span>{isAIMode ? 'AI' : 'P2'} · {p2Username}</span>
-              {isAIMode && isAIThinking && (
-                <span className="text-xs animate-pulse" style={{ color: '#FFD700' }}>THINKING...</span>
-              )}
-            </div>
-            <div className="font-display text-3xl font-black text-right" style={{ color: p2Color }}>{scores[1]}</div>
-            <div className="mt-2 h-2 rounded-full overflow-hidden" style={{ background: '#1A1A2E' }}>
-              <div className="h-full rounded-full resource-bar" style={{ width: `${p2Resource}%`, background: `linear-gradient(90deg, ${p2Color}, ${p2Glow})` }} />
-            </div>
-            <div className="font-body text-xs mt-1 text-right" style={{ color: '#6666AA' }}>{FACTION_RESOURCE[p2Anime]}: {p2Resource}/100</div>
-            
-            {/* Momentum Bar */}
-            <div className="mt-2 h-2 rounded-full overflow-hidden" style={{ background: '#1A1A2E' }}>
-              <div 
-                className="h-full rounded-full transition-all duration-300" 
-                style={{ 
-                  width: `${momentumLevel.player2}%`, 
-                  background: momentum.player2 === 'legendary' ? 'linear-gradient(90deg, #FFD700, #FFA500)' :
-                             momentum.player2 === 'peak' ? 'linear-gradient(90deg, #FF6B00, #FF4500)' :
-                             momentum.player2 === 'high' ? 'linear-gradient(90deg, #00FF88, #00CC66)' :
-                             momentum.player2 === 'normal' ? 'linear-gradient(90deg, #6666AA, #555599)' :
-                             momentum.player2 === 'low' ? 'linear-gradient(90deg, #FF6B6B, #FF4444)' :
-                             'linear-gradient(90deg, #FF003C, #CC0020)'
-                }} 
-              />
-            </div>
-            <div className="font-body text-xs mt-1 text-right" style={{ 
-              color: momentum.player2 === 'legendary' ? '#FFD700' :
-                     momentum.player2 === 'peak' ? '#FF6B00' :
-                     momentum.player2 === 'high' ? '#00FF88' :
-                     momentum.player2 === 'normal' ? '#6666AA' :
-                     momentum.player2 === 'low' ? '#FF6B6B' :
-                     '#FF003C'
-            }}>
-              MOMENTUM: {momentum.player2.toUpperCase()} ({momentumLevel.player2}%)
-            </div>
-            
-            {/* Battle State Indicator */}
-            {battleState.player2 !== 'normal' && (
-              <div className={`mt-2 text-xs font-bold text-center px-2 py-1 rounded ${
-                battleState.player2 === 'awakening' ? 'bg-purple-600 text-white' :
-                battleState.player2 === 'last_stand' ? 'bg-red-600 text-white' :
-                battleState.player2 === 'overload' ? 'bg-orange-600 text-white' :
-                battleState.player2 === 'forbidden' ? 'bg-black text-red-400 border border-red-400' :
-                'bg-gray-600 text-white'
-              }`}>
-                {battleState.player2.toUpperCase().replace('_', ' ')}
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs text-[#6666AA]">
+                {p2Anime.toUpperCase()}
               </div>
-            )}
+              <div className="font-display text-xs font-bold tracking-wider text-right flex items-center gap-2" style={{ color: p2Color }}>
+                <span>{p2Username}</span>
+                {isAIMode && isAIThinking && (
+                  <span className="text-xs animate-pulse" style={{ color: '#FFD700' }}>THINKING...</span>
+                )}
+              </div>
+            </div>
+            <div className="font-display text-2xl font-black text-center mb-2" style={{ color: p2Color }}>{scores[1]}</div>
+            <div className="space-y-1">
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#1A1A2E' }}>
+                <div className="h-full rounded-full resource-bar transition-all duration-300" style={{ width: `${p2Resource}%`, background: `linear-gradient(90deg, ${p2Color}, ${p2Glow})` }} />
+              </div>
+              <div className="flex justify-between text-xs text-right" style={{ color: '#6666AA' }}>
+                <span>{p2Resource}/100</span>
+                <span>{FACTION_RESOURCE[p2Anime]}</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1640,7 +1651,18 @@ const DotWarsGame = () => {
           {/* Game board */}
           <div className="flex-1 flex justify-center order-1 lg:order-1">
             <div className="w-full max-w-[500px] flex justify-center">
-              <svg width={svgSize} height={svgSize} className="rounded-lg w-full h-auto" style={{ background: '#050510', maxWidth: '100%' }}>
+              <svg
+              width={svgSize}
+              height={svgSize}
+              viewBox={`0 0 ${svgSize} ${svgSize}`}
+              style={{ 
+                display: 'block', 
+                margin: '0 auto',
+                touchAction: 'none',
+                userSelect: 'none',
+              }}
+              className="rounded-lg"
+            >
               {/* Completed squares */}
               {squares.map((sq, i) => {
                 const color = sq.player === 1 ? p1Color : p2Color;
@@ -1650,10 +1672,10 @@ const DotWarsGame = () => {
                 return (
                   <g key={`sq-${i}`}>
                     <rect
-                      x={PADDING + sq.c * DOT_SPACING}
-                      y={PADDING + sq.r * DOT_SPACING}
-                      width={DOT_SPACING}
-                      height={DOT_SPACING}
+                      x={svgPadding + sq.c * cellSize}
+                      y={svgPadding + sq.r * cellSize}
+                      width={cellSize}
+                      height={cellSize}
                       fill={isCorrupted ? '#8B00FF' : color}
                       fillOpacity={isCracked ? 0.1 : isCorrupted ? 0.3 : 0.2}
                       stroke={isCorrupted ? '#FF00FF' : color}
@@ -1663,10 +1685,10 @@ const DotWarsGame = () => {
                     />
                     {isCracked && (
                       <line
-                        x1={PADDING + sq.c * DOT_SPACING}
-                        y1={PADDING + sq.r * DOT_SPACING}
-                        x2={PADDING + (sq.c + 1) * DOT_SPACING}
-                        y2={PADDING + (sq.r + 1) * DOT_SPACING}
+                        x1={svgPadding + sq.c * cellSize}
+                        y1={svgPadding + sq.r * cellSize}
+                        x2={svgPadding + (sq.c + 1) * cellSize}
+                        y2={svgPadding + (sq.r + 1) * cellSize}
                         stroke='#FF003C'
                         strokeWidth={2}
                         opacity={0.6}
@@ -1681,12 +1703,12 @@ const DotWarsGame = () => {
                 const color = tri.player === 1 ? p1Color : p2Color;
                 const isCracked = tri.cracked;
                 const isCorrupted = tri.corrupted;
-                const x1 = PADDING + tri.c1 * DOT_SPACING;
-                const y1 = PADDING + tri.r1 * DOT_SPACING;
-                const x2 = PADDING + tri.c2 * DOT_SPACING;
-                const y2 = PADDING + tri.r2 * DOT_SPACING;
-                const x3 = PADDING + tri.c3 * DOT_SPACING;
-                const y3 = PADDING + tri.r3 * DOT_SPACING;
+                const x1 = svgPadding + tri.c1 * cellSize;
+                const y1 = svgPadding + tri.r1 * cellSize;
+                const x2 = svgPadding + tri.c2 * cellSize;
+                const y2 = svgPadding + tri.r2 * cellSize;
+                const x3 = svgPadding + tri.c3 * cellSize;
+                const y3 = svgPadding + tri.r3 * cellSize;
                 
                 return (
                   <g key={`tri-${i}`}>
@@ -1716,20 +1738,27 @@ const DotWarsGame = () => {
 
               {/* Clickable line areas */}
               {getAvailableLines().map(([r1, c1, r2, c2]) => {
-                const x1 = PADDING + c1 * DOT_SPACING;
-                const y1 = PADDING + r1 * DOT_SPACING;
-                const x2 = PADDING + c2 * DOT_SPACING;
-                const y2 = PADDING + r2 * DOT_SPACING;
+                const x1 = dotRadius * 2 + c1 * cellSize;
+                const y1 = dotRadius * 2 + r1 * cellSize;
+                const x2 = dotRadius * 2 + c2 * cellSize;
+                const y2 = dotRadius * 2 + r2 * cellSize;
                 const isHorizontal = r1 === r2;
                 return (
                   <line key={`avail-${r1}-${c1}-${r2}-${c2}`}
                     x1={x1} y1={y1} x2={x2} y2={y2}
                     stroke={currentColor}
-                    strokeWidth={10}
+                    strokeWidth={Math.max(8, cellSize * 0.15)}
                     strokeOpacity={0}
                     className="cursor-pointer"
+                    style={{ touchAction: 'none', cursor: 'pointer' }}
                     onMouseEnter={e => { (e.target as SVGLineElement).setAttribute('stroke-opacity', '0.2'); }}
                     onMouseLeave={e => { (e.target as SVGLineElement).setAttribute('stroke-opacity', '0'); }}
+                    onTouchStart={e => { (e.target as SVGLineElement).setAttribute('stroke-opacity', '0.3'); }}
+                    onTouchEnd={(e) => { 
+                      e.preventDefault(); 
+                      (e.target as SVGLineElement).setAttribute('stroke-opacity', '0'); 
+                      placeLine(r1, c1, r2, c2); 
+                    }}
                     onClick={() => placeLine(r1, c1, r2, c2)}
                   />
                 );
@@ -1742,8 +1771,8 @@ const DotWarsGame = () => {
                 return (
                   <g key={`line-${i}`}>
                     <line
-                      x1={PADDING + l.c1 * DOT_SPACING} y1={PADDING + l.r1 * DOT_SPACING}
-                      x2={PADDING + l.c2 * DOT_SPACING} y2={PADDING + l.r2 * DOT_SPACING}
+                      x1={svgPadding + l.c1 * cellSize} y1={svgPadding + l.r1 * cellSize}
+                      x2={svgPadding + l.c2 * cellSize} y2={svgPadding + l.r2 * cellSize}
                       stroke={color} strokeWidth={3} strokeLinecap="round"
                       filter={`drop-shadow(0 0 4px ${glow})`}
                     />
@@ -1839,8 +1868,8 @@ const DotWarsGame = () => {
                 Array.from({ length: gridSize }).map((_, c) => (
                   <g key={`dot-${r}-${c}`}>
                     <circle
-                      cx={PADDING + c * DOT_SPACING}
-                      cy={PADDING + r * DOT_SPACING}
+                      cx={dotRadius * 2 + c * cellSize}
+                      cy={dotRadius * 2 + r * cellSize}
                       r={5}
                       fill="#0D0D1A"
                       stroke={currentColor}

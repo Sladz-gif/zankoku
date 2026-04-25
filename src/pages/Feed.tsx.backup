@@ -1,0 +1,793 @@
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useGame } from '@/context/GameContext';
+import { getFactionColor, getFactionGlow, timeAgo } from '@/lib/gameUtils';
+import { FACTION_NAMES } from '@/types/game';
+import { 
+  Heart, MessageCircle, Repeat2, Share2, Bookmark, MoreHorizontal,
+  Plus, X
+} from 'lucide-react';
+import { 
+  parseTextSegments, 
+  extractMentions, 
+  extractHashtags, 
+  validatePost, 
+  recordPost,
+  copyToClipboard,
+  getPostUrl,
+  calculateEngagementScore,
+  type TextSegment
+} from '@/lib/feedUtils';
+
+const FeedEnhanced = () => {
+  const { 
+    currentUser, users, posts, bounties, comments, clans,
+    addPost, toggleLike, repost, addComment, toggleBookmark, sharePost,
+    deletePost, editPost, incrementPostViews, followedUsers, blockedUsers,
+    toggleFollow, blockUser
+  } = useGame();
+  
+  const navigate = useNavigate();
+  const [newPost, setNewPost] = useState('');
+  const [isComposeModalOpen, setIsComposeModalOpen] = useState(false);
+  const [tab, setTab] = useState<'foryou' | 'trending' | 'clan' | 'following'>('foryou');
+  const [expandedComments, setExpandedComments] = useState<number | null>(null);
+  const [commentText, setCommentText] = useState('');
+  const [repostDropdown, setRepostDropdown] = useState<number | null>(null);
+  const [quoteModal, setQuoteModal] = useState<number | null>(null);
+  const [quoteText, setQuoteText] = useState('');
+  const [likeAnimations, setLikeAnimations] = useState<Set<number>>(new Set());
+  const [bookmarkAnimations, setBookmarkAnimations] = useState<Set<number>>(new Set());
+  const [copiedPostId, setCopiedPostId] = useState<number | null>(null);
+  const [postMenuOpen, setPostMenuOpen] = useState<number | null>(null);
+  const [editingPost, setEditingPost] = useState<number | null>(null);
+  const [editText, setEditText] = useState('');
+  const [hashtagFilter, setHashtagFilter] = useState<string | null>(null);
+  const [postError, setPostError] = useState<string | null>(null);
+  
+  const factionColor = currentUser ? getFactionColor(currentUser.anime) : '#8B00FF';
+
+  // Get user helper
+  const getUser = useCallback((id: number) => {
+    if (currentUser?.id === id) return currentUser;
+    return users.find(u => u.id === id);
+  }, [currentUser, users]);
+
+  // Filter posts based on tab and blocked users
+  const filteredPosts = useMemo(() => {
+    let filtered = posts.filter(p => !blockedUsers.includes(p.userId));
+    
+    // Apply hashtag filter if active
+    if (hashtagFilter) {
+      filtered = filtered.filter(p => 
+        p.hashtags?.includes(hashtagFilter.toLowerCase()) ||
+        p.text.toLowerCase().includes(`#${hashtagFilter.toLowerCase()}`)
+      );
+    }
+    
+    switch (tab) {
+      case 'following':
+        return filtered.filter(p => followedUsers.includes(p.userId));
+      
+      case 'trending':
+        return [...filtered].sort((a, b) => 
+          calculateEngagementScore(b) - calculateEngagementScore(a)
+        );
+      
+      case 'clan': {
+        if (!currentUser?.clanId) return [];
+        const clanMemberIds = users
+          .filter(u => u.clanId === currentUser.clanId)
+          .map(u => u.id);
+        return filtered.filter(p => clanMemberIds.includes(p.userId));
+      }
+      
+      case 'foryou':
+      default:
+        return filtered;
+    }
+  }, [posts, tab, followedUsers, blockedUsers, currentUser, users, hashtagFilter]);
+
+  // Handle post creation
+  const handlePost = useCallback(() => {
+    if (!newPost.trim()) return;
+    
+    const validation = validatePost(newPost);
+    if (!validation.valid) {
+      setPostError(validation.error || 'Invalid post');
+      setTimeout(() => setPostError(null), 3000);
+      return;
+    }
+    
+    recordPost();
+    addPost(newPost.trim());
+    setNewPost('');
+    setPostError(null);
+    setIsComposeModalOpen(false);
+  }, [newPost, addPost]);
+
+  // Handle like with animation
+  const handleLike = useCallback((postId: number) => {
+    const post = posts.find(p => p.id === postId);
+    if (post && currentUser && post.userId === currentUser.id) return;
+    
+    toggleLike(postId);
+    setLikeAnimations(prev => new Set(prev).add(postId));
+    setTimeout(() => {
+      setLikeAnimations(prev => {
+        const next = new Set(prev);
+        next.delete(postId);
+        return next;
+      });
+    }, 600);
+  }, [posts, currentUser, toggleLike]);
+
+  // Handle bookmark with animation
+  const handleBookmark = useCallback((postId: number) => {
+    toggleBookmark(postId);
+    setBookmarkAnimations(prev => new Set(prev).add(postId));
+    setTimeout(() => {
+      setBookmarkAnimations(prev => {
+        const next = new Set(prev);
+        next.delete(postId);
+        return next;
+      });
+    }, 600);
+  }, [toggleBookmark]);
+
+  // Handle share (copy link)
+  const handleShare = useCallback(async (postId: number) => {
+    const url = getPostUrl(postId);
+    const success = await copyToClipboard(url);
+    
+    if (success) {
+      sharePost(postId);
+      setCopiedPostId(postId);
+      setTimeout(() => setCopiedPostId(null), 2000);
+    }
+  }, [sharePost]);
+
+  // Handle repost
+  const handleRepost = useCallback((postId: number) => {
+    repost(postId);
+    setRepostDropdown(null);
+  }, [repost]);
+
+  // Handle quote post
+  const handleQuotePost = useCallback(() => {
+    if (!quoteModal || !quoteText.trim()) return;
+    const origPost = posts.find(p => p.id === quoteModal);
+    addPost(quoteText.trim(), quoteModal, origPost?.text);
+    setQuoteModal(null);
+    setQuoteText('');
+  }, [quoteModal, quoteText, posts, addPost]);
+
+  // Handle comment
+  const handleComment = useCallback((postId: number) => {
+    if (!commentText.trim()) return;
+    addComment(postId, commentText.trim());
+    setCommentText('');
+  }, [commentText, addComment]);
+
+  // Handle post deletion
+  const handleDeletePost = useCallback((postId: number) => {
+    if (window.confirm('Delete this post? This cannot be undone.')) {
+      deletePost(postId);
+      setPostMenuOpen(null);
+    }
+  }, [deletePost]);
+
+  // Handle post edit
+  const handleEditPost = useCallback((postId: number) => {
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+    
+    setEditingPost(postId);
+    setEditText(post.text);
+    setPostMenuOpen(null);
+  }, [posts]);
+
+  // Save edited post
+  const handleSaveEdit = useCallback((postId: number) => {
+    if (!editText.trim()) return;
+    
+    const validation = validatePost(editText);
+    if (!validation.valid) {
+      alert(validation.error);
+      return;
+    }
+    
+    editPost(postId, editText.trim());
+    setEditingPost(null);
+    setEditText('');
+  }, [editText, editPost]);
+
+  // Navigate to profile
+  const handleProfileClick = useCallback((userId: number) => {
+    navigate(`/profile?user=${userId}`);
+  }, [navigate]);
+
+  // Handle mention click
+  const handleMentionClick = useCallback((username: string) => {
+    const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
+    if (user) {
+      navigate(`/profile?user=${user.id}`);
+    }
+  }, [users, navigate]);
+
+  // Handle hashtag click
+  const handleHashtagClick = useCallback((hashtag: string) => {
+    setHashtagFilter(hashtag);
+    setTab('foryou');
+  }, []);
+
+  // Render text with clickable links
+  const renderText = useCallback((text: string) => {
+    const segments = parseTextSegments(text);
+    
+    return segments.map((segment, index) => {
+      switch (segment.type) {
+        case 'mention':
+          return (
+            <span
+              key={index}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMentionClick(segment.username);
+              }}
+              className="cursor-pointer hover:underline"
+              style={{ color: '#8B00FF' }}
+            >
+              {segment.raw}
+            </span>
+          );
+        
+        case 'hashtag':
+          return (
+            <span
+              key={index}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleHashtagClick(segment.hashtag);
+              }}
+              className="cursor-pointer hover:underline"
+              style={{ color: '#00C8FF' }}
+            >
+              {segment.raw}
+            </span>
+          );
+        
+        case 'url':
+          return (
+            <a
+              key={index}
+              href={segment.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="hover:underline"
+              style={{ color: '#00FF88' }}
+            >
+              {segment.url}
+            </a>
+          );
+        
+        case 'text':
+        default:
+          return <span key={index}>{segment.content}</span>;
+      }
+    });
+  }, [handleMentionClick, handleHashtagClick]);
+
+  // Increment views when post is viewed
+  useEffect(() => {
+    const viewedPosts = new Set<number>();
+    
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const postId = parseInt(entry.target.getAttribute('data-post-id') || '0');
+            if (postId && !viewedPosts.has(postId)) {
+              viewedPosts.add(postId);
+              incrementPostViews(postId);
+            }
+          }
+        });
+      },
+      { threshold: 0.5 }
+    );
+
+    const postElements = document.querySelectorAll('[data-post-id]');
+    postElements.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, [filteredPosts, incrementPostViews]);
+
+  const postComments = useCallback((postId: number) => comments.filter(c => c.postId === postId), [comments]);
+
+  // Get trending clans for right sidebar
+  const trendingClans = useMemo(() => {
+    return clans
+      .filter(clan => clan.memberCount >= 3)
+      .sort((a, b) => b.memberCount - a.memberCount)
+      .slice(0, 5);
+  }, [clans]);
+
+  return (
+    <div className="feed-page">
+      {/* Desktop Post Composer - Top of feed */}
+      <div className="post-composer">
+        <div className="post-composer-avatar" style={{ 
+          background: `${factionColor}20`, 
+          borderColor: factionColor, 
+          color: factionColor 
+        }}>
+          {currentUser?.username[0]?.toUpperCase()}
+        </div>
+        <div className="post-composer-body">
+          <textarea
+            value={newPost}
+            onChange={e => setNewPost(e.target.value)}
+            className="post-composer-textarea"
+            placeholder="Speak your truth... (500 chars max, @mention users, #hashtags)"
+            maxLength={500}
+          />
+          <div className="post-composer-actions">
+            <div className="post-composer-tools">
+              {/* Tool buttons can be added here */}
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="post-char-count">
+                {newPost.length}/500
+              </span>
+              {postError && (
+                <span style={{ color: '#FF003C' }}>
+                  {postError}
+                </span>
+              )}
+              <button 
+                onClick={handlePost} 
+                disabled={!newPost.trim()}
+                className="post-submit-btn"
+              >
+                POST TO ZANKOKU
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Center Column */}
+      <div className="feed-center-column">
+        {/* Feed Tabs */}
+        <div className="feed-tabs-bar">
+          {(['foryou', 'trending', 'clan', 'following'] as const).map(t => (
+            <button 
+              key={t} 
+              onClick={() => { setTab(t); setHashtagFilter(null); }}
+              className={`feed-tab-btn ${tab === t ? 'active' : ''}`}
+            >
+              {t === 'foryou' ? 'For You' : t === 'trending' ? 'Trending' : t === 'clan' ? 'Clan Feed' : 'Following'}
+            </button>
+          ))}
+        </div>
+
+        {/* Hashtag filter indicator */}
+        {hashtagFilter && (
+          <div className="w-full p-4 flex items-center gap-2" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+            <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-body)' }}>
+              Filtering by: #{hashtagFilter}
+            </span>
+            <button 
+              onClick={() => setHashtagFilter(null)}
+              className="ml-auto"
+              style={{ 
+                color: 'var(--text-muted)', 
+                fontFamily: 'var(--font-body)',
+                fontSize: '12px'
+              }}
+            >
+              Clear filter
+            </button>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {filteredPosts.length === 0 && (
+          <div className="w-full text-center py-8">
+            <p style={{ 
+              color: 'var(--text-muted)', 
+              fontFamily: 'var(--font-body)',
+              fontSize: '14px'
+            }}>
+              {tab === 'following' && followedUsers.length === 0 
+                ? 'Follow users to see their posts here'
+                : tab === 'clan' && !currentUser?.clanId
+                ? 'Join a clan to see clan posts'
+                : hashtagFilter
+                ? `No posts found with #${hashtagFilter}`
+                : 'No posts yet. Be the first to post!'}
+            </p>
+          </div>
+        )}
+
+        {/* Posts */}
+        {filteredPosts.map((post, i) => {
+          const author = getUser(post.userId);
+          if (!author) return null;
+          
+          const authorColor = getFactionColor(author.anime);
+          const isLiked = currentUser ? post.likedBy.includes(currentUser.id) : false;
+          const isBookmarked = currentUser ? post.bookmarkedBy.includes(currentUser.id) : false;
+          const isReposted = currentUser ? post.repostedBy.includes(currentUser.id) : false;
+          const isOwnPost = currentUser?.id === post.userId;
+          const showComments = expandedComments === post.id;
+          const pComments = postComments(post.id);
+          const isEditing = editingPost === post.id;
+
+          return (
+            <div 
+              key={post.id} 
+              data-post-id={post.id}
+              className={`post-card ${likeAnimations.has(post.id) ? 'like-animation' : ''} ${bookmarkAnimations.has(post.id) ? 'bookmark-animation' : ''}`}
+              style={{ animationDelay: `${i * 50}ms` }}
+            >
+              <div className="post-card-header">
+                {/* Avatar */}
+                <div 
+                  onClick={() => handleProfileClick(author.id)}
+                  className="post-card-avatar"
+                  style={{ 
+                    background: `${authorColor}20`, 
+                    borderColor: authorColor, 
+                    color: authorColor 
+                  }}
+                >
+                  {author.username[0]?.toUpperCase()}
+                </div>
+                
+                <div className="post-card-content">
+                  {/* User info */}
+                  <div className="post-card-header">
+                    <span 
+                      onClick={() => handleProfileClick(author.id)}
+                      className="post-card-username"
+                    >
+                      {author.username}
+                    </span>
+                    <span 
+                      className="post-card-faction-badge"
+                      style={{ 
+                        background: `${authorColor}20`, 
+                        color: authorColor 
+                      }}
+                    >
+                      {FACTION_NAMES[author.anime]}
+                    </span>
+                    
+                    {/* Timestamp */}
+                    <span className="post-card-timestamp">
+                      {timeAgo(post.timestamp)}
+                      {post.edited && <span>· edited</span>}
+                    </span>
+                  </div>
+
+                  {/* Post content */}
+                  <div className="post-card-body">
+                    {isEditing ? (
+                      <textarea
+                        value={editText}
+                        onChange={e => setEditText(e.target.value)}
+                        className="post-composer-textarea"
+                        maxLength={500}
+                        autoFocus
+                      />
+                    ) : (
+                      <p>{renderText(post.text)}</p>
+                    )}
+                  </div>
+
+                  {/* Post actions */}
+                  <div className="post-card-actions">
+                    {!isEditing && (
+                      <>
+                        <button 
+                          onClick={() => handleLike(post.id)}
+                          className={`post-action-btn ${isLiked ? 'liked' : ''}`}
+                        >
+                          <Heart size={16} fill={isLiked ? 'currentColor' : 'none'} />
+                          <span>{post.likes.length}</span>
+                        </button>
+                        
+                        <button 
+                          onClick={() => handleRepost(post.id)}
+                          className="post-action-btn"
+                        >
+                          <Repeat2 size={16} />
+                          <span>{post.reposts.length}</span>
+                        </button>
+                        
+                        <button 
+                          onClick={() => setExpandedComments(showComments ? null : post.id)}
+                          className="post-action-btn"
+                        >
+                          <MessageCircle size={16} />
+                          <span>{pComments.length}</span>
+                        </button>
+                        
+                        <button 
+                          onClick={() => handleBookmark(post.id)}
+                          className={`post-action-btn ${isBookmarked ? 'bookmarked' : ''}`}
+                        >
+                          <Bookmark size={16} fill={isBookmarked ? 'currentColor' : 'none'} />
+                        </button>
+                        
+                        <div className="relative">
+                          <button 
+                            onClick={() => setPostMenuOpen(postMenuOpen === post.id ? null : post.id)}
+                            className="post-action-btn"
+                          >
+                            <Share2 size={16} />
+                          </button>
+                          
+                          {/* Dropdown menu */}
+                          {postMenuOpen === post.id && (
+                            <div className="absolute top-8 right-0 w-48 rounded-lg shadow-lg z-50" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+                              <button 
+                                onClick={() => handleShare(post.id)}
+                                className="w-full px-4 py-2 text-left"
+                                style={{ 
+                                  color: 'var(--text-primary)', 
+                                  fontFamily: 'var(--font-body)',
+                                  fontSize: '13px'
+                                }}
+                              >
+                                Copy Link
+                              </button>
+                              {isOwnPost && (
+                                <>
+                                  <button 
+                                    onClick={() => setEditingPost(post.id)}
+                                    className="w-full px-4 py-2 text-left"
+                                    style={{ 
+                                      color: 'var(--text-primary)', 
+                                      fontFamily: 'var(--font-body)',
+                                      fontSize: '13px'
+                                    }}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeletePost(post.id)}
+                                    className="w-full px-4 py-2 text-left"
+                                    style={{ 
+                                      color: '#FF003C', 
+                                      fontFamily: 'var(--font-body)',
+                                      fontSize: '13px'
+                                    }}
+                                  >
+                                    Delete
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+                    
+                    {/* Edit/Save buttons */}
+                    {isEditing && (
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => handleSaveEdit(post.id)}
+                          className="post-submit-btn"
+                        >
+                          SAVE
+                        </button>
+                        <button 
+                          onClick={() => setEditingPost(null)}
+                          className="px-3 py-1.5"
+                          style={{ 
+                            background: 'var(--bg-elevated)', 
+                            color: 'var(--text-muted)',
+                            fontFamily: 'var(--font-body)',
+                            fontSize: '13px',
+                            borderRadius: '6px'
+                          }}
+                        >
+                          CANCEL
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Comments section */}
+              {showComments && !isEditing && (
+                <div className="mt-4 border-t border-t" style={{ borderColor: 'var(--border)' }}>
+                  <div className="space-y-3 p-4">
+                    {pComments.map(comment => (
+                      <div key={comment.id} className="flex gap-3">
+                        <div 
+                          className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs"
+                          style={{ 
+                            background: `${getFactionColor(getUser(comment.userId)?.anime || 'jjk')}20`, 
+                            color: getFactionColor(getUser(comment.userId)?.anime || 'jjk'),
+                            fontFamily: 'var(--font-display)'
+                          }}
+                        >
+                          {getUser(comment.userId)?.username[0]}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span style={{ 
+                              color: 'var(--text-primary)', 
+                              fontFamily: 'var(--font-body)',
+                              fontSize: '12px',
+                              fontWeight: 600
+                            }}>
+                              {getUser(comment.userId)?.username}
+                            </span>
+                            <span style={{ 
+                              color: 'var(--text-muted)', 
+                              fontFamily: 'var(--font-body)',
+                              fontSize: '12px'
+                            }}>
+                              {timeAgo(comment.timestamp)}
+                            </span>
+                          </div>
+                          <p style={{ 
+                            color: 'var(--text-primary)', 
+                            fontFamily: 'var(--font-body)',
+                            fontSize: '14px',
+                            lineHeight: 1.5
+                          }}>
+                            {renderText(comment.text)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {/* Comment input */}
+                    <div className="mt-3">
+                      <textarea
+                        value={commentText}
+                        onChange={e => setCommentText(e.target.value)}
+                        className="post-composer-textarea"
+                        placeholder="Write a comment..."
+                        maxLength={500}
+                      />
+                      <div className="post-composer-actions">
+                        <button 
+                          onClick={() => handleComment(post.id)}
+                          className="post-submit-btn"
+                        >
+                          POST
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+      {/* Right Sidebar - Only on Feed */}
+      <div className="feed-right-sidebar">
+        <div className="feed-right-sidebar-card">
+          <div className="feed-right-sidebar-card-title">
+            Trending Clans
+          </div>
+          <div className="p-4 space-y-3">
+            {trendingClans.map(clan => (
+              <div key={clan.id} className="flex items-center gap-3 p-2 rounded" style={{ background: 'var(--bg-elevated)' }}>
+                <div 
+                  className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs"
+                  style={{ 
+                    background: `${getFactionColor(clan.anime)}20`, 
+                    color: getFactionColor(clan.anime) 
+                  }}
+                >
+                  {clan.name[0]}
+                </div>
+                <div className="flex-1">
+                  <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+                    {clan.name}
+                  </div>
+                  <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    {clan.memberCount || 0} members
+                  </div>
+                </div>
+                <button className="text-xs px-2 py-1 rounded" style={{ 
+                  background: `${getFactionColor(clan.anime)}10`, 
+                  color: getFactionColor(clan.anime),
+                  border: `1px solid ${getFactionColor(clan.anime)}30`
+                }}>
+                  Join
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default FeedEnhanced;
+                    fontSize: '14px',
+                    fontWeight: 600
+                  }}>
+                    {clan.name}
+                  </div>
+                  <div style={{ 
+                    color: 'var(--text-muted)', 
+                    fontFamily: 'var(--font-body)',
+                    fontSize: '12px'
+                  }}>
+                    {clan.memberCount} members
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile FAB */}
+      <button 
+        className="fab-compose"
+        onClick={() => setIsComposeModalOpen(true)}
+      >
+        <Plus size={24} color="white" />
+      </button>
+
+      {/* Mobile Compose Modal */}
+      {isComposeModalOpen && (
+        <div className="compose-modal-fullscreen">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setIsComposeModalOpen(false)}
+          />
+          
+          <div className="relative flex flex-col h-full">
+            {/* Header */}
+            <div className="compose-modal-header">
+              <button 
+                onClick={() => setIsComposeModalOpen(false)}
+                className="text-2xl"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                <X size={24} />
+              </button>
+              <button 
+                onClick={handlePost} 
+                disabled={!newPost.trim()}
+                className="compose-modal-post-btn"
+              >
+                POST
+              </button>
+            </div>
+            
+            {/* Textarea */}
+            <textarea
+              value={newPost}
+              onChange={e => setNewPost(e.target.value)}
+              className="compose-modal-textarea"
+              placeholder="Speak your truth... (500 chars max, @mention users, #hashtags)"
+              maxLength={500}
+              autoFocus
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default FeedEnhanced;

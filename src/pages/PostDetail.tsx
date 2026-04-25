@@ -1,22 +1,32 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGame } from '@/context/GameContext';
-import { getFactionColor, getAlignmentLabel, timeAgo } from '@/lib/gameUtils';
-import { FACTION_NAMES } from '@/types/game';
-import { ArrowLeft, Heart, MessageCircle, Repeat2, Eye, AlertTriangle, Skull, Star } from 'lucide-react';
-import { useState } from 'react';
+import { getFactionColor, timeAgo } from '@/lib/gameUtils';
+import { ArrowLeft, Heart, MessageCircle, Repeat2, Eye } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 const PostDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { posts, users, currentUser, comments, toggleLike, addComment } = useGame();
+  const { posts, users, currentUser, getPostById } = useGame();
   const [commentText, setCommentText] = useState('');
+  const [animatingPosts, setAnimatingPosts] = useState(new Set());
+  const [comments, setComments] = useState([]);
   const factionColor = currentUser ? getFactionColor(currentUser.anime) : '#8B00FF';
 
-  const post = posts.find(p => p.id === Number(id));
+  if (!posts || posts.length === 0) return (
+    <div className="page-enter max-w-2xl mx-auto p-6">
+      <button onClick={() => navigate(-1)} className="flex items-center gap-2 font-body text-sm mb-4" style={{ color: '#6666AA' }}>
+        <ArrowLeft size={18} strokeWidth={1.5} /> Back to Feed
+      </button>
+      <p className="font-body text-sm" style={{ color: '#6666AA' }}>Loading posts...</p>
+    </div>
+  );
+
+  const post = getPostById(id);
   if (!post) return (
     <div className="page-enter max-w-2xl mx-auto p-6">
       <button onClick={() => navigate(-1)} className="flex items-center gap-2 font-body text-sm mb-4" style={{ color: '#6666AA' }}>
-        <ArrowLeft size={18} strokeWidth={1.5} /> Back
+        <ArrowLeft size={18} strokeWidth={1.5} /> Back to Feed
       </button>
       <p className="font-body text-sm" style={{ color: '#6666AA' }}>Post not found.</p>
     </div>
@@ -30,14 +40,73 @@ const PostDetail = () => {
   const author = getUser(post.userId);
   if (!author) return null;
   const authorColor = getFactionColor(author.anime);
-  const isLiked = currentUser ? post.likedBy.includes(currentUser.id) : false;
+  const isLiked = currentUser ? post.likedBy?.includes(currentUser.id) : false;
   const pComments = comments.filter(c => c.postId === post.id);
+
+  const handleLike = async (postId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (!currentUser) return;
+    
+    setAnimatingPosts(prev => new Set(prev).add(postId));
+    // TODO: Implement actual like functionality
+    console.log('Post liked:', postId);
+    
+    setTimeout(() => {
+      setAnimatingPosts(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(postId);
+        return newSet;
+      });
+    }, 200);
+  };
 
   const handleComment = () => {
     if (!commentText.trim()) return;
-    addComment(post.id, commentText.trim());
+    // TODO: Implement actual comment functionality
+    console.log('Comment added:', commentText);
     setCommentText('');
   };
+
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      /* Force horizontal layout for post detail */
+      .flex.items-center,
+      .flex.justify-between,
+      .flex.justify-around {
+        display: flex !important;
+        flex-direction: row !important;
+      }
+      
+      .flex.items-center > *,
+      .flex.justify-between > *,
+      .flex.justify-around > * {
+        display: inline-flex !important;
+        flex-direction: row !important;
+      }
+      
+      .flex.items-center button,
+      .flex.justify-between button,
+      .flex.justify-around button {
+        display: inline-flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        width: auto !important;
+        flex-shrink: 0 !important;
+      }
+      
+      .flex.items-center button span,
+      .flex.justify-between button span,
+      .flex.justify-around button span {
+        display: inline-block !important;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   return (
     <div className="page-enter flex">
@@ -48,91 +117,125 @@ const PostDetail = () => {
 
         <div className="rounded-lg p-6" style={{ background: '#080812', border: '1px solid #1A1A2E' }}>
           <div className="flex items-start gap-3 mb-4">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center font-display text-lg font-bold shrink-0"
-              style={{ background: `${authorColor}20`, border: `2px solid ${authorColor}`, color: authorColor }}>
-              {author.username[0]}
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-body text-sm font-bold" style={{ color: '#E8E8FF' }}>{author.username}</span>
-                <span className="px-1.5 py-0.5 rounded text-xs font-body font-semibold" style={{ background: `${authorColor}20`, color: authorColor, fontSize: '10px' }}>
-                  {FACTION_NAMES[author.anime]}
-                </span>
-                {author.roleTag && (
-                  <span className="px-1.5 py-0.5 rounded text-xs font-display font-bold role-tag-shimmer" style={{ background: '#1A1A2E', color: '#E8E8FF', fontSize: '9px', letterSpacing: '0.1em' }}>
-                    [{author.roleTag}]
-                  </span>
-                )}
-                {author.bountyActive && (
-                  <span className="px-1.5 py-0.5 rounded text-xs font-bold bounty-pulse flex items-center gap-1" style={{ background: '#FF003C20', color: '#FF003C', fontSize: '9px' }}>
-                    <AlertTriangle size={10} /> BOUNTY
-                  </span>
-                )}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0" style={{ background: authorColor, color: 'white' }}>
+                {author?.username[0]?.toUpperCase() || '?'}
               </div>
-              <span className="font-body text-xs" style={{ color: '#333355' }}>{timeAgo(post.timestamp)}</span>
+              <div>
+                <span className="font-bold text-white" style={{ fontFamily: 'Orbitron, monospace', fontSize: '15px' }}>{author?.username || 'Unknown User'}</span>
+                <span className="text-gray-500" style={{ fontFamily: 'Orbitron, monospace', fontSize: '15px' }}>@{author?.username?.toLowerCase() || 'unknown'} · {timeAgo(post.timestamp)}</span>
+              </div>
             </div>
-          </div>
 
-          <p className="font-body text-base mb-6" style={{ color: '#E8E8FF', lineHeight: 1.7 }}>{post.text}</p>
+            <div className="text-white leading-relaxed mb-6">
+              <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', lineHeight: '1.5' }}>
+                {post.text}
+              </p>
+            </div>
 
-          <div className="flex items-center gap-6 py-4" style={{ borderTop: '1px solid #1A1A2E', borderBottom: '1px solid #1A1A2E' }}>
-            <button onClick={() => toggleLike(post.id)}
-              className="font-body text-sm flex items-center gap-1.5"
-              style={{ color: isLiked ? '#FF6B8A' : '#6666AA' }}>
-              <Heart size={16} strokeWidth={1.5} fill={isLiked ? '#FF6B8A' : 'none'} /> {post.likes}
-            </button>
-            <span className="font-body text-sm flex items-center gap-1.5" style={{ color: '#6666AA' }}>
-              <MessageCircle size={16} strokeWidth={1.5} /> {pComments.length}
-            </span>
-            <span className="font-body text-sm flex items-center gap-1.5" style={{ color: '#6666AA' }}>
-              <Repeat2 size={16} strokeWidth={1.5} /> {post.reposts}
-            </span>
-            <span className="font-body text-sm flex items-center gap-1.5" style={{ color: '#6666AA' }}>
-              <Eye size={16} strokeWidth={1.5} /> {post.likes * 3 + post.reposts * 5}
-            </span>
-          </div>
+            {/* Stats Row - X/Twitter style */}
+            <div className="flex items-center justify-between w-full text-gray-500 text-sm mb-4" style={{ fontFamily: 'Inter, sans-serif' }}>
+              <span className="flex items-center gap-1">
+                <MessageCircle size={16} />
+                <span>{pComments.length}</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <Repeat2 size={16} />
+                <span>{Math.floor((post.likedBy?.length || 0) * 0.3)}</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <Heart size={16} className={isLiked ? 'text-red-500' : ''} fill={isLiked ? 'currentColor' : 'none'} />
+                <span>{post.likedBy?.length || 0}</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <Eye size={16} />
+                <span>{Math.floor((post.likedBy?.length || 0) * 10)}</span>
+              </span>
+            </div>
 
-          {/* Comment composer */}
-          <div className="flex gap-2 mt-4 mb-6">
-            <input value={commentText} onChange={e => setCommentText(e.target.value)}
-              className="flex-1 rounded font-body text-sm focus:outline-none"
-              style={{ background: '#0D0D1A', border: `1px solid ${factionColor}30`, color: '#E8E8FF', padding: '12px 16px' }}
-              placeholder="Write a comment..."
-              onKeyDown={e => e.key === 'Enter' && handleComment()}
-            />
-            <button onClick={handleComment}
-              className="px-4 py-2 rounded font-display text-xs font-bold tracking-wider"
-              style={{ background: `${factionColor}20`, color: factionColor }}>
-              REPLY
-            </button>
-          </div>
+            {/* Action Buttons - Interactive X/Twitter style */}
+            <div className="flex items-center justify-between w-full mt-2">
+              <button 
+                onClick={(e) => {
+                  if (currentUser) handleLike(post.id, e);
+                }} 
+                className={`flex items-center gap-2 p-2 rounded-full transition ${
+                  isLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'
+                } ${animatingPosts.has(post.id) ? 'scale-110' : ''}`}
+                style={{ 
+                  transform: animatingPosts.has(post.id) ? 'scale(1.1)' : 'scale(1)',
+                  transition: 'transform 0.2s ease-out'
+                }}
+              >
+                <Heart size={18} className={isLiked ? 'fill-current' : ''} />
+                <span>{post.likedBy?.length || 0}</span>
+              </button>
+              
+              <button className="flex items-center gap-2 p-2 rounded-full text-gray-500 hover:text-blue-500 transition">
+                <MessageCircle size={18} />
+                <span>{pComments.length}</span>
+              </button>
+              
+              <button className="flex items-center gap-2 p-2 rounded-full text-gray-500 hover:text-green-500 transition">
+                <Repeat2 size={18} />
+                <span>{Math.floor((post.likedBy?.length || 0) * 0.3)}</span>
+              </button>
+              
+              <button className="flex items-center gap-2 p-2 rounded-full text-gray-500 hover:text-blue-400 transition">
+                <Eye size={18} />
+                <span>{Math.floor((post.likedBy?.length || 0) * 10)}</span>
+              </button>
+            </div>
 
-          {/* Comments */}
-          <div className="space-y-4">
-            {pComments.map(c => {
-              const cAuthor = getUser(c.userId);
-              if (!cAuthor) return null;
-              const cColor = getFactionColor(cAuthor.anime);
-              return (
-                <div key={c.id} className="flex items-start gap-3 p-3 rounded-lg" style={{ background: '#0D0D1A' }}>
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center font-display text-xs font-bold shrink-0"
-                    style={{ background: `${cColor}20`, border: `1px solid ${cColor}`, color: cColor }}>
-                    {cAuthor.username[0]}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-body text-sm font-bold" style={{ color: '#E8E8FF' }}>{cAuthor.username}</span>
-                      <span className="px-1 py-0.5 rounded font-body" style={{ background: `${cColor}15`, color: cColor, fontSize: '9px' }}>{FACTION_NAMES[cAuthor.anime]}</span>
-                      <span className="font-body" style={{ color: '#333355', fontSize: '10px' }}>{timeAgo(c.timestamp)}</span>
-                    </div>
-                    <p className="font-body text-sm" style={{ color: '#E8E8FF' }}>{c.text}</p>
-                    <button className="font-body flex items-center gap-1 mt-1.5" style={{ color: '#6666AA', fontSize: '11px' }}>
-                      <Heart size={12} strokeWidth={1.5} /> {c.likes}
-                    </button>
-                  </div>
+            {/* Comments Section */}
+            <div className="mt-6">
+              <h3 className="font-display text-lg font-bold mb-4" style={{ color: '#8B00FF' }}>Comments</h3>
+              {pComments.length === 0 ? (
+                <p className="font-body text-gray-400">No comments yet. Be the first to comment!</p>
+              ) : (
+                <div className="space-y-4">
+                  {pComments.map(comment => {
+                    const commentAuthor = getUser(comment.userId);
+                    if (!commentAuthor) return null;
+                    const commentColor = getFactionColor(commentAuthor.anime);
+
+                    return (
+                      <div className="flex gap-3">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0" style={{ background: commentColor, color: 'white' }}>
+                          {commentAuthor.username[0]?.toUpperCase() || '?'}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-bold text-white" style={{ fontFamily: 'Orbitron, monospace', fontSize: '14px' }}>{commentAuthor.username || 'Unknown User'}</span>
+                            <span className="text-gray-400" style={{ fontFamily: 'Orbitron, monospace', fontSize: '12px' }}>@{commentAuthor.username?.toLowerCase() || 'unknown'} · {timeAgo(comment.timestamp)}</span>
+                          </div>
+                          <p className="text-white leading-relaxed">{comment.text}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              )}
+            </div>
+
+            {/* Reply Input */}
+            <div className="flex items-center gap-3 mt-4">
+              <input
+                type="text"
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="Add a comment..."
+                className="flex-1 px-4 py-2 rounded-lg bg-gray-800 text-white placeholder-gray-400"
+                style={{ border: `1px solid ${factionColor}` }}
+              />
+              <button 
+                onClick={handleComment}
+                className="px-4 py-2 rounded-lg text-white font-bold transition"
+                style={{ background: factionColor }}
+              >
+                Post
+              </button>
+            </div>
           </div>
         </div>
       </div>

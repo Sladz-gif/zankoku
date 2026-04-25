@@ -8,7 +8,9 @@ import SignUp from "./pages/SignUp";
 import SignIn from "./pages/SignIn";
 import ForgotPassword from "./pages/ForgotPassword";
 import DashboardPlaceholder from "./pages/DashboardPlaceholder";
+import Dojo from "./pages/Dojo";
 import Feed from "./pages/Feed";
+import Demo from "./pages/Demo";
 import Profile from "./pages/Profile";
 import Clans from "./pages/Clans";
 import BattleLobby from "./pages/BattleLobby";
@@ -31,9 +33,13 @@ import CommunityGuidelines from "./pages/CommunityGuidelines";
 import Support from "./pages/Support";
 import NotFound from "./pages/NotFound";
 import AnimeNews from "./pages/AnimeNews";
+import TutorialBasicCombat from "./pages/TutorialBasicCombat";
+import TutorialAdvancedStrategies from "./pages/TutorialAdvancedStrategies";
+import TutorialFightingStyles from "./pages/TutorialFightingStyles";
+import TutorialClanWarfare from "./pages/TutorialClanWarfare";
+import TutorialPowerMoves from "./pages/TutorialPowerMoves";
+import TutorialTournamentPrep from "./pages/TutorialTournamentPrep";
 import { useEffect } from "react";
-import { useSupportPopup } from "@/hooks/useSupportPopup";
-import SupportSection from "@/components/SupportSection";
 import SupportPopup from "@/components/SupportPopup";
 
 const queryClient = new QueryClient();
@@ -49,14 +55,6 @@ const ScrollToTopRouter = () => {
 };
 
 const App = () => {
-  const { 
-    showPopup, 
-    showSupportSection, 
-    handleSupportSectionClick, 
-    handleCloseSupportSection,
-    handleClosePopup
-  } = useSupportPopup();
-
   return (
     <QueryClientProvider client={queryClient}>
       <GameProvider>
@@ -79,6 +77,11 @@ const App = () => {
               <Route path="/support" element={<Support />} />
               
               {/* Authenticated Routes */}
+              <Route path="/demo" element={
+                <AuthGuard>
+                  <Demo />
+                </AuthGuard>
+              } />
               <Route path="/feed" element={
                 <AuthGuard>
                   <Feed />
@@ -104,9 +107,14 @@ const App = () => {
                   <Clans />
                 </AuthGuard>
               } />
-              <Route path="/battle" element={
+              <Route path="/battle-lobby" element={
                 <AuthGuard>
                   <BattleLobby />
+                </AuthGuard>
+              } />
+              <Route path="/dojo" element={
+                <AuthGuard>
+                  <Dojo />
                 </AuthGuard>
               } />
               <Route path="/bounties" element={
@@ -175,18 +183,42 @@ const App = () => {
                 </AuthGuard>
               } />
               
+              {/* Tutorial Routes */}
+              <Route path="/tutorial/basic-combat" element={
+                <AuthGuard>
+                  <TutorialBasicCombat />
+                </AuthGuard>
+              } />
+              <Route path="/tutorial/advanced-strategies" element={
+                <AuthGuard>
+                  <TutorialAdvancedStrategies />
+                </AuthGuard>
+              } />
+              <Route path="/tutorial/fighting-styles" element={
+                <AuthGuard>
+                  <TutorialFightingStyles />
+                </AuthGuard>
+              } />
+              <Route path="/tutorial/clan-warfare" element={
+                <AuthGuard>
+                  <TutorialClanWarfare />
+                </AuthGuard>
+              } />
+              <Route path="/tutorial/power-moves" element={
+                <AuthGuard>
+                  <TutorialPowerMoves />
+                </AuthGuard>
+              } />
+              <Route path="/tutorial/tournament-prep" element={
+                <AuthGuard>
+                  <TutorialTournamentPrep />
+                </AuthGuard>
+              } />
+              
               {/* Fallback */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AppLayout>
-          {/* Support Components */}
-          {showPopup && <SupportPopup onClose={handleClosePopup} />}
-          {showSupportSection && (
-            <SupportSection 
-              onClick={handleSupportSectionClick} 
-              onClose={handleCloseSupportSection} 
-            />
-          )}
         </BrowserRouter>
       </GameProvider>
     </QueryClientProvider>

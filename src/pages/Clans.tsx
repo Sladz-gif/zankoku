@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGame } from '@/context/GameContext';
 import { getFactionColor } from '@/lib/gameUtils';
 import { AnimeFaction, Alignment, ClanPostType } from '@/types/game';
@@ -10,6 +10,46 @@ import { Button } from '@/components/shared/Button';
 import { Tabs } from '@/components/shared/Tabs';
 
 const Clans = () => {
+  // Add custom CSS for modal scrolling
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      /* Enhanced Create Clan modal scrolling on mobile */
+      @media (max-width: 767px) {
+        .fixed.inset-0.z-50 > div:last-child {
+          overflow-x: auto !important;
+          overflow-y: auto !important;
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+          max-height: 90vh !important;
+        }
+        
+        .fixed.inset-0.z-50 > div:last-child::-webkit-scrollbar {
+          display: none !important;
+        }
+        
+        .fixed.inset-0.z-50 > div:last-child > div.p-6 {
+          min-width: 320px !important;
+          overflow-x: auto !important;
+          overflow-y: auto !important;
+        }
+        
+        /* Make clan avatar circles very small on mobile */
+        .page-enter > div > div > div > div > div > div > div:first-child {
+          width: 20px !important;
+          height: 20px !important;
+          font-size: 6px !important;
+          border-width: 0.5px !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   const { 
     clans, 
     currentUser, 
@@ -29,6 +69,156 @@ const Clans = () => {
     promoteClanMember,
     getClanMemberRole
   } = useGame();
+
+  // Demo clans for better visualization
+  const demoClans = [
+    {
+      id: 1,
+      name: 'Shadow Legion',
+      tag: 'SHDW',
+      motto: 'From darkness we rise, to victory we fall',
+      description: 'Elite warriors specializing in stealth and surprise attacks',
+      alignment: 'villain' as const,
+      primaryAnime: 'naruto' as const,
+      joinType: 'approval' as const,
+      members: 1250,
+      wins: 342,
+      losses: 89,
+      createdAt: Date.now() - 1000 * 60 * 60 * 24 * 30,
+      leaderId: 1,
+      rules: [{ id: 1, text: 'Loyalty above all' }, { id: 2, text: 'Strike from the shadows' }]
+    },
+    {
+      id: 2,
+      name: 'Phoenix Rising',
+      tag: 'PHNX',
+      motto: 'Born from ashes, reborn in battle',
+      description: 'Resilient fighters who never give up, no matter the odds',
+      alignment: 'hero' as const,
+      primaryAnime: 'bleach' as const,
+      joinType: 'open' as const,
+      members: 980,
+      wins: 256,
+      losses: 134,
+      createdAt: Date.now() - 1000 * 60 * 60 * 24 * 45,
+      leaderId: 2,
+      rules: [{ id: 1, text: 'Never surrender' }, { id: 2, text: 'Protect the innocent' }]
+    },
+    {
+      id: 3,
+      name: 'Dragon Force',
+      tag: 'DRGN',
+      motto: 'The power of dragons flows through our veins',
+      description: 'Masters of ancient techniques and devastating power',
+      alignment: 'hero' as const,
+      primaryAnime: 'onepiece' as const,
+      joinType: 'approval' as const,
+      members: 1100,
+      wins: 412,
+      losses: 98,
+      createdAt: Date.now() - 1000 * 60 * 60 * 24 * 60,
+      leaderId: 3,
+      rules: [{ id: 1, text: 'Honor the dragon code' }, { id: 2, text: 'Train relentlessly' }]
+    },
+    {
+      id: 4,
+      name: 'Cursed Society',
+      tag: 'CRSD',
+      motto: 'Embrace the curse, master the power',
+      description: 'Wielders of forbidden arts and dark energies',
+      alignment: 'villain' as const,
+      primaryAnime: 'jjk' as const,
+      joinType: 'invite' as const,
+      members: 750,
+      wins: 289,
+      losses: 67,
+      createdAt: Date.now() - 1000 * 60 * 60 * 24 * 90,
+      leaderId: 4,
+      rules: [{ id: 1, text: 'Keep secrets sacred' }, { id: 2, text: 'Power above morality' }]
+    },
+    {
+      id: 5,
+      name: 'Demon Slayers',
+      tag: 'SLAY',
+      motto: 'Protect humanity from the darkness',
+      description: 'Sacred warriors dedicated to protecting the innocent',
+      alignment: 'hero' as const,
+      primaryAnime: 'demonslayer' as const,
+      joinType: 'open' as const,
+      members: 1450,
+      wins: 523,
+      losses: 145,
+      createdAt: Date.now() - 1000 * 60 * 60 * 24 * 120,
+      leaderId: 5,
+      rules: [{ id: 1, text: 'Protect the weak' }, { id: 2, text: 'Never show fear' }]
+    },
+    {
+      id: 6,
+      name: 'Anti-Magic Union',
+      tag: 'ANTI',
+      motto: 'True strength needs no magic',
+      description: 'Warriors who rely on pure skill and determination',
+      alignment: 'wanderer' as const,
+      primaryAnime: 'blackclover' as const,
+      joinType: 'approval' as const,
+      members: 620,
+      wins: 198,
+      losses: 89,
+      createdAt: Date.now() - 1000 * 60 * 60 * 24 * 150,
+      leaderId: 6,
+      rules: [{ id: 1, text: 'Reject magical shortcuts' }, { id: 2, text: 'Train body and mind' }]
+    }
+  ];
+
+  // Demo clan posts
+  const demoClanPosts = [
+    {
+      id: 1,
+      clanId: 1,
+      title: 'Night Raid Training Session',
+      body: 'All members required for stealth training at midnight. Bring your best techniques.',
+      type: 'announcement' as const,
+      authorId: 1,
+      authorUsername: 'ShadowMaster',
+      createdAt: Date.now() - 1000 * 60 * 60 * 2,
+      upvotes: 15,
+      downvotes: 2,
+      isPinned: true,
+      commentCount: 8
+    },
+    {
+      id: 2,
+      clanId: 1,
+      title: 'Victory Against Dragon Force!',
+      body: 'Excellent teamwork in today\'s clan battle. Our shadow techniques proved superior!',
+      type: 'celebration' as const,
+      authorId: 2,
+      authorUsername: 'NightHawk',
+      createdAt: Date.now() - 1000 * 60 * 60 * 5,
+      upvotes: 23,
+      downvotes: 1,
+      isPinned: false,
+      commentCount: 12
+    },
+    {
+      id: 3,
+      clanId: 2,
+      title: 'Welcome New Members!',
+      body: 'Five new warriors joined our ranks today. Let\'s show them the Phoenix way!',
+      type: 'welcome' as const,
+      authorId: 3,
+      authorUsername: 'PhoenixLeader',
+      createdAt: Date.now() - 1000 * 60 * 60 * 8,
+      upvotes: 18,
+      downvotes: 0,
+      isPinned: false,
+      commentCount: 6
+    }
+  ];
+
+  // Use demo data if real data is empty
+  const allClans = clans.length > 0 ? clans : demoClans;
+  const allClanPosts = clanPosts.length > 0 ? clanPosts : demoClanPosts;
   
   const [selectedClan, setSelectedClan] = useState<number | null>(null);
   const [search, setSearch] = useState('');
@@ -55,7 +245,7 @@ const Clans = () => {
   const getClanColor = (anime: AnimeFaction | 'mixed') => anime === 'mixed' ? '#8B00FF' : getFactionColor(anime as AnimeFaction);
   
   // Filter and sort clans
-  let filtered = clans.filter(c => {
+  let filtered = allClans.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase());
     const matchesAlignment = alignmentFilter === 'all' || c.alignment === alignmentFilter;
     const matchesJoinType = joinTypeFilter === 'all' || c.joinType === joinTypeFilter;
@@ -71,14 +261,14 @@ const Clans = () => {
     return 0;
   });
   
-  const detail = selectedClan !== null ? clans.find(c => c.id === selectedClan) : null;
+  const detail = selectedClan !== null ? allClans.find(c => c.id === selectedClan) : null;
   const userClan = currentUser?.clanId ? clans.find(c => c.id === currentUser.clanId) : null;
   const isInClan = detail && currentUser?.clanId === detail.id;
   const userRole = detail && currentUser ? getClanMemberRole(detail.id, currentUser.id) : null;
   const isLeaderOrOfficer = userRole === 'leader' || userRole === 'officer';
   
   // Get clan posts
-  const detailPosts = detail ? clanPosts.filter(p => p.clanId === detail.id) : [];
+  const detailPosts = detail ? allClanPosts.filter(p => p.clanId === detail.id) : [];
   
   // Sort posts
   const sortedPosts = [...detailPosts].sort((a, b) => {
@@ -454,55 +644,89 @@ const Clans = () => {
           </div>
         )}
         {filtered.map((clan, i) => {
-          const cColor = getClanColor(clan.primaryAnime);
+          const cColor = getFactionColor(clan.anime || 'naruto');
           return (
             <button 
               key={clan.id} 
               onClick={() => setSelectedClan(clan.id)}
-              className="w-full text-left p-5 rounded-lg transition-all duration-200 stagger-item hover:brightness-110"
+              className="w-full text-left p-4 rounded-lg border transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
               style={{ 
                 animationDelay: `${i * 50}ms`, 
-                background: '#080812', 
-                border: `1px solid ${cColor}30`, 
-                boxShadow: `0 0 15px ${cColor}08` 
+                background: '#0D0D1A', 
+                border: `1px solid ${cColor}40`, 
+                boxShadow: `0 4px 12px rgba(0,0,0,0.3), 0 0 20px ${cColor}15` 
               }}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-['Orbitron'] text-base font-bold tracking-wider" style={{ color: cColor }}>
-                      {clan.name}
-                    </h3>
-                    <span className="text-sm font-['Rajdhani']" style={{ color: '#6666AA' }}>
-                      [{clan.tag}]
-                    </span>
-                    {clan.joinType === 'invite' && (
-                      <Lock size={14} strokeWidth={1.5} style={{ color: '#FF003C' }} />
-                    )}
+                  <div className="flex items-center gap-3 mb-2">
+                    <div 
+                      className="w-3 h-3 rounded-full flex items-center justify-center font-bold text-[8px]"
+                      style={{ 
+                        background: `${cColor}20`, 
+                        color: cColor,
+                        border: `0.5px solid ${cColor}40`
+                      }}
+                    >
+                      {clan.name?.[0]?.toUpperCase() || '?'}
+                    </div>
+                    <div>
+                      <h3 className="font-['Orbitron'] text-lg font-bold tracking-wider" style={{ color: '#E8E8FF' }}>
+                        {clan.name || 'Unknown Clan'}
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-['Rajdhani'] font-semibold px-2 py-0.5 rounded" style={{ 
+                          background: `${cColor}15`, 
+                          color: cColor,
+                          border: `1px solid ${cColor}30`
+                        }}>
+                          [{clan.tag || 'TAG'}]
+                        </span>
+                        {clan.joinType === 'invite' && (
+                          <Lock size={14} strokeWidth={1.5} style={{ color: '#FF003C' }} />
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <p className="font-['Rajdhani'] text-sm mb-2" style={{ color: '#6666AA' }}>
-                    {clan.motto}
+                  <p className="font-['Rajdhani'] text-sm mb-3 leading-relaxed" style={{ color: '#B8B8D0' }}>
+                    {clan.motto || 'No motto available'}
                   </p>
-                  <div className="flex gap-3 flex-wrap">
-                    <span className="px-2 py-0.5 rounded text-xs font-['Rajdhani'] font-semibold uppercase" style={{ background: `${cColor}20`, color: cColor }}>
-                      {clan.alignment}
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <span className="px-3 py-1 rounded-full text-xs font-['Rajdhani'] font-semibold uppercase" style={{ 
+                      background: `${cColor}25`, 
+                      color: cColor,
+                      border: `1px solid ${cColor}40`
+                    }}>
+                      {clan.alignment || 'wanderer'}
                     </span>
-                    <span className="flex items-center gap-1 text-xs font-['Rajdhani']" style={{ color: '#6666AA' }}>
-                      <Users size={12} strokeWidth={1.5} /> {clan.members}
+                    <span className="flex items-center gap-1.5 text-xs font-['Rajdhani'] px-2 py-1 rounded" style={{ 
+                      background: '#1A1A2E', 
+                      color: '#6666AA',
+                      border: '1px solid #2A2A4E'
+                    }}>
+                      <Users size={12} strokeWidth={1.5} /> {Array.isArray(clan.members) ? clan.members.length : (clan.memberCount || 0)} members
                     </span>
-                    <span className="flex items-center gap-1 text-xs font-['Rajdhani']" style={{ color: '#00FF88' }}>
-                      <Trophy size={12} strokeWidth={1.5} /> {clan.wins}W / {clan.losses}L
+                    <span className="flex items-center gap-1.5 text-xs font-['Rajdhani'] px-2 py-1 rounded" style={{ 
+                      background: '#0A2E0A', 
+                      color: '#00FF88',
+                      border: '1px solid #00FF8840'
+                    }}>
+                      <Trophy size={12} strokeWidth={1.5} /> {clan.wins || 0}W
                     </span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="px-3 py-1 rounded text-xs font-['Rajdhani'] font-bold uppercase" style={{ 
-                    background: clan.joinType === 'open' ? '#00FF8820' : clan.joinType === 'approval' ? '#FFD70020' : '#FF003C20',
-                    color: clan.joinType === 'open' ? '#00FF88' : clan.joinType === 'approval' ? '#FFD700' : '#FF003C'
-                  }}>
-                    {clan.joinType}
-                  </span>
-                </div>
+              </div>
+              <div className="flex justify-between items-center pt-3 border-t" style={{ borderColor: '#2A2A4E' }}>
+                <span className="text-xs font-['Rajdhani']" style={{ color: '#6666AA' }}>
+                  Created {clan.createdAt ? new Date(clan.createdAt).toLocaleDateString() : 'Unknown'}
+                </span>
+                <span className="px-3 py-1 rounded text-xs font-['Rajdhani'] font-bold uppercase" style={{ 
+                  background: clan.joinType === 'open' ? '#00FF8820' : clan.joinType === 'approval' ? '#FFD70020' : '#FF003C20',
+                  color: clan.joinType === 'open' ? '#00FF88' : clan.joinType === 'approval' ? '#FFD700' : '#FF003C',
+                  border: `1px solid ${clan.joinType === 'open' ? '#00FF8840' : clan.joinType === 'approval' ? '#FFD70040' : '#FF003C40'}`
+                }}>
+                  {clan.joinType || 'open'}
+                </span>
               </div>
             </button>
           );

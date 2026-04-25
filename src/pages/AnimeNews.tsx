@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { Newspaper, Bell, Clock, TrendingUp, Star, Lock, Sparkles, Mail } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Newspaper, Bell, Clock, TrendingUp, Star, Lock, Sparkles, Mail, ArrowLeft } from 'lucide-react';
 
 const AnimeNews = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -36,6 +38,21 @@ const AnimeNews = () => {
         />
         
         <div className="relative max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-20 md:py-32">
+          {/* Back Arrow */}
+          <button
+            onClick={() => navigate('/feed')}
+            className="absolute top-0 left-0 flex items-center gap-2 px-4 py-2 rounded-lg transition-all hover:bg-white/10"
+            style={{
+              color: 'var(--text-primary)',
+              fontFamily: 'Rajdhani, sans-serif',
+              fontSize: '16px',
+              fontWeight: 600,
+            }}
+          >
+            <ArrowLeft size={20} />
+            Back
+          </button>
+          
           <div className="text-center">
             {/* Lock Icon */}
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-8 mx-auto"

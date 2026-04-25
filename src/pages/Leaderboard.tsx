@@ -3,7 +3,7 @@ import { useGame } from '@/context/GameContext';
 import { getFactionColor } from '@/lib/gameUtils';
 import { RankingSystem, RankingResult } from '@/lib/rankingSystem';
 import { FACTION_NAMES, ZankokuUser } from '@/types/game';
-import { Trophy, TrendingUp, Target, Coins, Star, Skull, Shield, ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import { Trophy, TrendingUp, Target, Coins, Star, Skull, Shield, ArrowUp, ArrowDown, Minus, Crown, Medal, Award } from 'lucide-react';
 
 type LeaderboardTab = 'global' | 'bounty' | 'gamblers' | 'clans' | 'shame' | 'country';
 
@@ -16,65 +16,23 @@ const Leaderboard = () => {
   // Calculate rankings using the new system
   const rankings = useMemo(() => RankingSystem.calculateRankings(allUsers), [allUsers]);
 
-  const getSorted = (): { name: string; value: number | string; color: string; extra?: string; flag?: string; rankChange?: number; tier?: string }[] => {
-    switch (tab) {
-      case 'global':
-        return rankings.map(r => ({
-          name: r.user.username,
-          value: r.user.points,
-          color: getFactionColor(r.user.anime),
-          extra: `${r.tier.icon} ${r.tier.name}`,
-          flag: r.user.countryFlag,
-          rankChange: r.rankChange,
-          tier: r.tier.name
-        }));
-      case 'bounty':
-        return [...allUsers].sort((a, b) => b.bountiesClaimed - a.bountiesClaimed).map(u => ({ 
-          name: u.username, 
-          value: `${u.bountiesClaimed} claimed`, 
-          color: getFactionColor(u.anime), 
-          flag: u.countryFlag 
-        }));
-      case 'gamblers':
-        return [...allUsers].filter(u => u.roleTag === 'GAMBLER' || u.currency.gold > 50).sort((a, b) => b.currency.gold - a.currency.gold).map(u => ({ 
-          name: u.username, 
-          value: `${u.currency.gold} Gold`, 
-          color: '#FFD700', 
-          flag: u.countryFlag 
-        }));
-      case 'shame':
-        return [...allUsers].filter(u => u.cowardStars > 0).sort((a, b) => b.cowardStars - a.cowardStars).map(u => ({ 
-          name: u.username, 
-          value: `${u.cowardStars} stars`, 
-          color: '#FF003C', 
-          flag: u.countryFlag 
-        }));
-      case 'clans':
-        return clans.sort((a, b) => b.wins - a.wins).map(c => ({ 
-          name: c.name, 
-          value: `${c.wins}W / ${c.losses}L`, 
-          color: '#8B00FF' 
-        }));
-      case 'country': {
-        const byCountry: Record<string, { flag: string; total: number; count: number }> = {};
-        allUsers.forEach(u => {
-          if (u.country && u.countryFlag) {
-            if (!byCountry[u.country]) byCountry[u.country] = { flag: u.countryFlag, total: 0, count: 0 };
-            byCountry[u.country].total += u.points;
-            byCountry[u.country].count++;
-          }
-        });
-        return Object.entries(byCountry).sort((a, b) => b[1].total - a[1].total).map(([name, d]) => ({
-          name, value: `${d.total} pts (${d.count} fighters)`, color: '#00C8FF', flag: d.flag,
-        }));
-      }
-      default:
-        return [];
-    }
+  const getTopPlayers = () => {
+    return rankings.slice(0, 10).map((r, index) => ({
+      rank: index + 1,
+      username: r.user.username,
+      points: r.user.points,
+      wins: r.user.duelsWon || 0,
+      losses: r.user.duelsLost || 0,
+      winRate: r.user.duelsWon + r.user.duelsLost > 0 ? 
+        Math.round((r.user.duelsWon / (r.user.duelsWon + r.user.duelsLost)) * 100) : 0,
+      faction: r.user.anime,
+      color: getFactionColor(r.user.anime),
+      tier: r.tier.name,
+      rankChange: r.rankChange
+    }));
   };
 
-  const rows = getSorted();
-  const glowColors = ['#FFD700', '#C0C0C0', '#CD7F32'];
+  const topPlayers = getTopPlayers();
 
   const tabs: [LeaderboardTab, string, any][] = [
     ['global', 'Global', TrendingUp],
@@ -86,84 +44,138 @@ const Leaderboard = () => {
   ];
 
   return (
-    <div className="page-enter max-w-3xl mx-auto p-4 md:p-6">
-      <h1 className="font-display text-2xl font-bold tracking-wider flex items-center gap-3 mb-6" style={{ color: '#FFD700', textShadow: '0 0 20px rgba(255,215,0,0.3)' }}>
-        <Trophy size={22} strokeWidth={1.5} /> LEADERBOARD
-      </h1>
+    <div className="min-h-screen bg-[#030308] text-[#E8E8FF] p-6">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold font-orbitron text-[#FFD700] mb-2">LEADERBOARD</h1>
+          <p className="text-[#6666AA]">Top ranked players in the Zankoku universe</p>
+        </div>
 
-      <div className="flex gap-3 flex-wrap border-b mb-6" style={{ borderColor: '#1A1A2E' }}>
-        {tabs.map(([k, l, Icon]) => (
-          <button key={k} onClick={() => setTab(k)} className="pb-2 font-body text-sm font-semibold flex items-center gap-1.5"
-            style={{ color: tab === k ? '#FFD700' : '#6666AA', borderBottom: tab === k ? '2px solid #FFD700' : '2px solid transparent' }}>
-            <Icon size={14} strokeWidth={1.5} /> {l}
-          </button>
-        ))}
-      </div>
-
-      <div className="space-y-3">
-        {rows.map((row, i) => {
-          const getRankChangeIcon = () => {
-            if (!row.rankChange) return <Minus size={12} className="text-gray-500" />;
-            if (row.rankChange > 0) return <ArrowUp size={12} className="text-green-400" />;
-            return <ArrowDown size={12} className="text-red-400" />;
-          };
-
-          const getTierColor = (tierName?: string) => {
-            if (!tierName) return '#666666';
-            const tier = rankings.find(r => r.tier.name === tierName)?.tier;
-            return tier?.color || '#666666';
-          };
-
-          return (
-            <div key={row.name + i} className="flex items-center gap-4 p-4 rounded-lg stagger-item"
-              style={{
-                animationDelay: `${i * 30}ms`,
-                background: i < 3 ? `${glowColors[i]}08` : '#080812',
-                border: `1px solid ${i < 3 ? `${glowColors[i]}30` : '#1A1A2E'}`,
-                boxShadow: i < 3 ? `0 0 15px ${glowColors[i]}15` : 'none',
-              }}>
-              <span className="font-display text-lg font-bold w-8 text-center" style={{ color: i < 3 ? glowColors[i] : '#333355' }}>
-                {i + 1}
-              </span>
-              
-              {/* Rank Change Indicator */}
-              {tab === 'global' && row.rankChange !== undefined && (
-                <div className="flex items-center justify-center w-6">
-                  {getRankChangeIcon()}
-                  {Math.abs(row.rankChange) > 0 && (
-                    <span className="text-xs ml-1" style={{ color: row.rankChange > 0 ? '#4ADE80' : '#F87171' }}>
-                      {Math.abs(row.rankChange)}
-                    </span>
-                  )}
-                </div>
-              )}
-              
-              <div className="w-8 h-8 rounded-full flex items-center justify-center font-display text-xs font-bold"
-                style={{ background: `${row.color}20`, border: `2px solid ${row.color}`, color: row.color }}>
-                {row.name[0]}
-              </div>
-              <div className="flex-1">
-                <span className="font-body text-sm font-bold" style={{ color: '#E8E8FF' }}>
-                  {row.flag && <span className="mr-1">{row.flag}</span>}
-                  {row.name}
-                </span>
-                {row.extra && (
-                  <span 
-                    className="font-body text-xs ml-2 px-2 py-0.5 rounded" 
-                    style={{ 
-                      color: getTierColor(row.tier), 
-                      background: `${getTierColor(row.tier)}20`,
-                      border: `1px solid ${getTierColor(row.tier)}40`
-                    }}
-                  >
-                    {row.extra}
-                  </span>
+        {/* Top 3 Players */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          {topPlayers.slice(0, 3).map((player, index) => (
+            <div key={player.rank} className="text-center">
+              {/* Rank Badge */}
+              <div className="mb-4">
+                {player.rank === 1 && (
+                  <div className="w-20 h-20 rounded-full bg-[#FFD700]/20 flex items-center justify-center mx-auto border-4 border-[#FFD700]">
+                    <Crown size={32} className="text-[#FFD700]" />
+                  </div>
+                )}
+                {player.rank === 2 && (
+                  <div className="w-20 h-20 rounded-full bg-[#C0C0C0]/20 flex items-center justify-center mx-auto border-4 border-[#C0C0C0]">
+                    <Medal size={32} className="text-[#C0C0C0]" />
+                  </div>
+                )}
+                {player.rank === 3 && (
+                  <div className="w-20 h-20 rounded-full bg-[#CD7F32]/20 flex items-center justify-center mx-auto border-4 border-[#CD7F32]">
+                    <Award size={32} className="text-[#CD7F32]" />
+                  </div>
                 )}
               </div>
-              <span className="font-display text-sm font-bold" style={{ color: row.color }}>{row.value}</span>
+
+              {/* Player Info */}
+              <div className="bg-[#080812] border border-[#1A1A2E] rounded-lg p-6">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg border-2 mx-auto mb-3"
+                  style={{ 
+                    background: `${player.color}20`, 
+                    borderColor: player.color,
+                    color: player.color
+                  }}
+                >
+                  {player.username[0]?.toUpperCase()}
+                </div>
+                <h3 className="text-lg font-bold text-[#E8E8FF] mb-1">{player.username}</h3>
+                <div className="text-sm text-[#6666AA] mb-4">{player.faction}</div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#6666AA]">Points</span>
+                    <span className="text-[#E8E8FF] font-medium">{player.points}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#6666AA]">Win Rate</span>
+                    <span className="text-[#E8E8FF] font-medium">{player.winRate}%</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#6666AA]">W/L</span>
+                    <span className="text-[#E8E8FF] font-medium">{player.wins}/{player.losses}</span>
+                  </div>
+                </div>
+              </div>
             </div>
-          );
-        })}
+          ))}
+        </div>
+
+        {/* Full Rankings */}
+        <div className="bg-[#080812] border border-[#1A1A2E] rounded-lg p-6">
+          <h2 className="text-xl font-bold font-orbitron mb-6">FULL RANKINGS</h2>
+          
+          {/* Table Header */}
+          <div className="grid grid-cols-12 gap-4 pb-3 border-b border-[#1A1A2E] text-xs font-medium text-[#6666AA]">
+            <div className="col-span-1">RANK</div>
+            <div className="col-span-4">PLAYER</div>
+            <div className="col-span-2">FACTION</div>
+            <div className="col-span-2 text-center">WIN RATE</div>
+            <div className="col-span-1 text-center">WINS</div>
+            <div className="col-span-1 text-center">LOSSES</div>
+            <div className="col-span-1 text-center">POINTS</div>
+          </div>
+
+          {/* Table Rows */}
+          <div className="space-y-2">
+            {topPlayers.map((player) => (
+              <div key={player.rank} className="grid grid-cols-12 gap-4 py-3 border-b border-[#1A1A2E]/50 items-center">
+                <div className="col-span-1">
+                  <span className={`font-bold ${
+                    player.rank === 1 ? 'text-[#FFD700]' :
+                    player.rank === 2 ? 'text-[#C0C0C0]' :
+                    player.rank === 3 ? 'text-[#CD7F32]' :
+                    'text-[#6666AA]'
+                  }`}>
+                    #{player.rank}
+                  </span>
+                </div>
+                
+                <div className="col-span-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border-2"
+                      style={{ 
+                        background: `${player.color}20`, 
+                        borderColor: player.color,
+                        color: player.color
+                      }}
+                    >
+                      {player.username[0]?.toUpperCase()}
+                    </div>
+                    <span className="text-sm font-medium text-[#E8E8FF]">{player.username}</span>
+                  </div>
+                </div>
+                
+                <div className="col-span-2">
+                  <span className="text-sm text-[#6666AA]">{player.faction}</span>
+                </div>
+                
+                <div className="col-span-2 text-center">
+                  <span className="text-sm text-[#E8E8FF]">{player.winRate}%</span>
+                </div>
+                
+                <div className="col-span-1 text-center">
+                  <span className="text-sm text-[#E8E8FF]">{player.wins}</span>
+                </div>
+                
+                <div className="col-span-1 text-center">
+                  <span className="text-sm text-[#E8E8FF]">{player.losses}</span>
+                </div>
+                
+                <div className="col-span-1 text-center">
+                  <span className="text-sm font-medium text-[#E8E8FF]">{player.points}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

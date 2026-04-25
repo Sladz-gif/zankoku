@@ -13,14 +13,18 @@ const SignIn = () => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  
+  const togglePassword = () => {
+    setShowPassword(!showPassword);
+  };
   const [rememberMe, setRememberMe] = useState(false);
   
   const [errorText, setErrorText] = useState('');
   const [authenticating, setAuthenticating] = useState(false);
 
-  const togglePassword = () => {
-    setShowPassword(!showPassword);
-  };
+  // Determine if user is entering email or username
+  const isEmail = identifier.includes('@');
+  const inputType = isEmail ? 'email' : 'username';
 
   const handleSignIn = async () => {
     console.log('=== SIGN-IN ATTEMPT STARTED ===');
@@ -38,12 +42,14 @@ const SignIn = () => {
     console.log('Authentication started...');
     
     try {
+      // Call signInWithUsernameOrEmail function
       const { data, error } = await signInWithUsernameOrEmail(identifier, password);
       
       console.log('Auth result:', { data, error });
       
       if (error) {
         console.error('Sign in error:', error);
+        // Handle specific error messages
         if (error.message.includes('Invalid login credentials')) {
           setErrorText('Invalid email/username or password. Please check your details and try again.');
         } else if (error.message.includes('Email not confirmed')) {
@@ -60,14 +66,16 @@ const SignIn = () => {
       if (data?.user) {
         console.log('SUCCESS: User authenticated:', data.user.id);
         
+        // Reset authenticating state
         setAuthenticating(false);
         
+        // Set signup time for support popup trigger (if first time signing in)
         if (!sessionStorage.getItem('zankoku_signup_time')) {
           sessionStorage.setItem('zankoku_signup_time', Date.now().toString());
         }
         
-        // Navigate directly to feed page - no need to wait for GameContext
-        const destination = location.state?.from || '/feed';
+        // Navigate directly to demo page for testing
+        const destination = location.state?.from || '/demo';
         console.log('About to navigate to:', destination);
         console.log('Navigate function exists:', typeof navigate);
         
@@ -127,6 +135,7 @@ const SignIn = () => {
       <div className="relative z-10 w-full max-w-[420px] rounded-[4px] p-6 md:p-10"
            style={{ background: 'hsl(var(--bg-surface))', border: '1px solid hsl(var(--border-active))', boxShadow: '0 0 60px hsl(var(--neon-purple) / 0.12)' }}>
         
+                
         <div className="text-center mb-8">
           <div className="font-body font-semibold text-[11px] tracking-[4px] mb-2 uppercase" style={{ color: 'var(--text-muted)' }}>WELCOME BACK</div>
           <h2 className="font-display font-bold text-[22px]" style={{ color: 'hsl(var(--text-primary))' }}>Sign in to Zankoku.</h2>
@@ -138,7 +147,7 @@ const SignIn = () => {
             <div className="relative">
               <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
               <input type="text" value={identifier} onChange={e => { setIdentifier(e.target.value); setErrorText(''); }}
-                     placeholder="your@email.com or username"
+                     placeholder={isEmail ? "your@email.com" : "your username"}
                      className="w-full font-body text-[15px] rounded-[3px] focus:outline-none focus:border-[hsl(var(--neon-purple))] transition-colors"
                      style={{ background: 'hsl(var(--bg-elevated))', border: '1px solid', borderColor: errorText ? 'hsl(var(--neon-red))' : 'hsl(var(--border))', color: 'hsl(var(--text-primary))', padding: '14px 18px 14px 44px' }} />
             </div>
@@ -188,7 +197,10 @@ const SignIn = () => {
                 <AlertCircle size={14} /> {errorText}
               </div>
             )}
-            <button onClick={handleSignIn}
+            <button onClick={() => {
+                console.log('BUTTON CLICKED!');
+                handleSignIn();
+              }}
                     className="w-full flex items-center justify-center gap-2 px-[32px] py-[14px] rounded-[3px] font-display font-bold tracking-[2px] text-white uppercase transition-all duration-200"
                     style={{ background: 'linear-gradient(135deg, hsl(var(--neon-purple)), hsl(var(--neon-purple) / 0.8))' }}>
               SIGN IN <ArrowRight size={20} />

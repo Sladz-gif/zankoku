@@ -84,179 +84,156 @@ const Store = () => {
   ];
 
   return (
-    <div className="min-h-screen zankoku-bg">
-      <div className="scanline-overlay" />
-      <div className="max-w-6xl mx-auto p-4 md:p-6 relative z-10">
+    <div className="min-h-screen bg-[#030308] text-[#E8E8FF] p-6">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: `${factionColor}20`, border: `2px solid ${factionColor}` }}>
-              <ShoppingBag size={32} style={{ color: factionColor }} />
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold font-orbitron text-[#FFD700] mb-2">BATTLE STORE</h1>
+          <p className="text-[#6666AA]">Purchase coins and resources to enhance your battle experience</p>
+        </div>
+
+        {/* Coin Balance */}
+        <div className="flex justify-center mb-8">
+          <div className="bg-[#080812] border border-[#1A1A2E] rounded-lg p-4 flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-[#C0C0C0]/20 flex items-center justify-center">
+                <Coins size={16} className="text-[#C0C0C0]" />
+              </div>
+              <div>
+                <div className="text-xs text-[#6666AA]">SILVER</div>
+                <div className="text-lg font-bold text-[#E8E8FF]">{currentUser?.currency.silver || 0}</div>
+              </div>
             </div>
-            <div>
-              <h1 className="font-display text-3xl font-black tracking-wider" style={{ color: '#E8E8FF' }}>Battle Store</h1>
-              <p className="font-body text-sm" style={{ color: '#6666AA' }}>Power up your arsenal with exclusive content</p>
+            
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-[#FFD700]/20 flex items-center justify-center">
+                <Coins size={16} className="text-[#FFD700]" />
+              </div>
+              <div>
+                <div className="text-xs text-[#6666AA]">GOLD</div>
+                <div className="text-lg font-bold text-[#E8E8FF]">{currentUser?.currency.gold || 0}</div>
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* Currency Display */}
-          {currentUser && (
-            <div className="flex gap-4 mb-6">
-              <div className="flex items-center gap-2 px-4 py-2 rounded-lg" style={{ background: '#080812', border: '1px solid #1A1A2E' }}>
-                <Coins size={16} style={{ color: '#C0C0C0' }} />
-                <span className="font-body text-sm font-semibold" style={{ color: '#C0C0C0' }}>{currentUser.currency.silver} Silver</span>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-lg" style={{ background: '#080812', border: '1px solid #1A1A2E' }}>
-                <Coins size={16} style={{ color: '#FFD700' }} />
-                <span className="font-body text-sm font-semibold" style={{ color: '#FFD700' }}>{currentUser.currency.gold} Gold</span>
-              </div>
-            </div>
-          )}
-
-          {bought && (
-            <div className="p-3 rounded-lg mb-4 flex items-center gap-2" style={{ background: '#00FF8810', border: '1px solid #00FF8840' }}>
-              <CheckCircle size={16} style={{ color: '#00FF88' }} />
-              <p className="font-body text-sm" style={{ color: '#00FF88' }}>Purchased: {bought}</p>
-            </div>
-          )}
-
-          <div className="flex gap-4 border-b mb-6" style={{ borderColor: '#1A1A2E' }}>
-            {(['coins', 'resources'] as const).map(t => (
-              <button key={t} onClick={() => setTab(t)} className="pb-2 font-body text-sm font-semibold capitalize flex items-center gap-1.5"
-                style={{ color: tab === t ? '#FFD700' : '#6666AA', borderBottom: tab === t ? '2px solid #FFD700' : '2px solid transparent' }}>
-                {t === 'coins' && <Coins size={14} />}
-                {t === 'resources' && <Zap size={14} />}
-                {t}
-              </button>
-            ))}
+        {/* Tabs */}
+        <div className="flex justify-center mb-8">
+          <div className="bg-[#080812] border border-[#1A1A2E] rounded-lg p-1 flex gap-1">
+            <button
+              onClick={() => setTab('coins')}
+              className={`px-6 py-2 rounded-md font-medium transition-colors ${
+                tab === 'coins' 
+                  ? 'bg-[#FFD700] text-[#030308]' 
+                  : 'text-[#6666AA] hover:text-[#E8E8FF]'
+              }`}
+            >
+              <Coins size={16} className="inline mr-2" />
+              COINS
+            </button>
+            <button
+              onClick={() => setTab('resources')}
+              className={`px-6 py-2 rounded-md font-medium transition-colors ${
+                tab === 'resources' 
+                  ? 'bg-[#FFD700] text-[#030308]' 
+                  : 'text-[#6666AA] hover:text-[#E8E8FF]'
+              }`}
+            >
+              <Zap size={16} className="inline mr-2" />
+              RESOURCES
+            </button>
           </div>
+        </div>
 
-          {tab === 'resources' && (
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: `${userResource.color}20`, border: `2px solid ${userResource.color}` }}>
-                  <span className="text-xl">{userResource.icon}</span>
-                </div>
-                <div>
-                  <h2 className="font-display text-lg font-bold" style={{ color: userResource.color }}>{userResource.name} Refills</h2>
-                  <p className="font-body text-xs" style={{ color: '#6666AA' }}>Power your techniques and abilities with Silver Coins</p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {resourcePackages.map(pkg => (
-                  <div key={pkg.id} className="p-5 rounded-lg" style={{ background: '#080812', border: `1px solid ${userResource.color}30` }}>
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-display text-sm font-bold" style={{ color: '#E8E8FF' }}>{pkg.name}</h3>
-                      <span className="font-display text-lg font-black" style={{ color: userResource.color }}>+{pkg.amount}</span>
+        {/* Content */}
+        {tab === 'coins' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {coinPackages.map(pkg => (
+              <div key={pkg.id} className="bg-[#080812] border border-[#1A1A2E] rounded-lg p-6 relative">
+                                
+                <h3 className="text-xl font-bold font-orbitron text-[#E8E8FF] mb-2">{pkg.name}</h3>
+                <div className="text-2xl font-bold text-[#FFD700] mb-4">{pkg.price}</div>
+                
+                <div className="space-y-3 mb-6">
+                  {pkg.silver > 0 && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-[#C0C0C0]/20 flex items-center justify-center">
+                          <Coins size={12} className="text-[#C0C0C0]" />
+                        </div>
+                        <span className="text-[#E8E8FF]">Silver</span>
+                      </div>
+                      <span className="text-[#E8E8FF] font-medium">+{pkg.silver}</span>
                     </div>
-                    <p className="font-body text-xs mb-3" style={{ color: '#6666AA' }}>
-                      Instant {userResource.name} refill for your next battles
-                    </p>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-body text-xs" style={{ color: '#C0C0C0' }}>Cost:</span>
-                      <span className="font-display text-sm font-bold" style={{ color: '#C0C0C0' }}>{pkg.silverCost} Silver</span>
+                  )}
+                  {pkg.gold > 0 && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-[#FFD700]/20 flex items-center justify-center">
+                          <Coins size={12} className="text-[#FFD700]" />
+                        </div>
+                        <span className="text-[#E8E8FF]">Gold</span>
+                      </div>
+                      <span className="text-[#E8E8FF] font-medium">+{pkg.gold}</span>
                     </div>
-                    <button onClick={() => handleBuy(pkg.name, pkg.silverCost, 0, '', undefined, false)}
-                      className="w-full px-4 py-2 rounded font-display text-xs font-bold tracking-wider"
-                      style={{ background: `${userResource.color}20`, color: userResource.color, border: `1px solid ${userResource.color}40` }}>
-                      {pkg.silverCost} Silver
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-8 p-4 rounded-lg" style={{ background: '#080812', border: '1px solid #1A1A2E' }}>
-                <h3 className="font-display text-sm font-bold mb-2" style={{ color: '#FFD700' }}>Need More Silver?</h3>
-                <p className="font-body text-xs mb-3" style={{ color: '#6666AA' }}>
-                  Purchase Silver Coins from the Coins tab
-                </p>
-                <button onClick={() => setTab('coins')} className="px-4 py-2 rounded font-display text-xs font-bold"
-                  style={{ background: 'linear-gradient(135deg, #FFD700, #FFEC60)', color: '#030308' }}>
-                  Get Coins →
+                  )}
+                  {pkg.bonus && (
+                    <div className="bg-[#FFD700]/10 border border-[#FFD700]/30 rounded-lg p-3 text-center">
+                      <div className="text-xs font-medium text-[#FFD700]">{pkg.bonus}</div>
+                    </div>
+                  )}
+                </div>
+                
+                <button 
+                  onClick={() => handleBuy(pkg.name, pkg.silver, pkg.gold, pkg.price, undefined, true)}
+                  className="w-full py-3 bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-[#030308] rounded-lg font-bold hover:shadow-[0_0_16px_rgba(255,215,0,0.5)] transition-all"
+                  disabled={!currentUser}
+                >
+                  PURCHASE
                 </button>
               </div>
+            ))}
+          </div>
+        )}
 
-              <div className="mt-8 p-4 rounded-lg" style={{ background: '#080812', border: '1px solid #FFD70030' }}>
-                <h3 className="font-display text-sm font-bold mb-3" style={{ color: '#FFD700' }}>Unlimited Resources</h3>
-                <p className="font-body text-xs mb-4" style={{ color: '#6666AA' }}>
-                  Never run out of {userResource.name} during battles. Gold only.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {unlimitedSubscriptions.map((pkg, idx) => {
-                    const subType = idx === 0 ? 'weekly' : idx === 1 ? 'monthly' : 'season';
-                    return (
-                      <div key={pkg.id} className="p-4 rounded-lg text-center" style={{ background: '#0D0D1A', border: '1px solid #FFD70040' }}>
-                        <h4 className="font-display text-xs font-bold mb-1" style={{ color: '#FFD700' }}>{pkg.name}</h4>
-                        <p className="font-body text-xs mb-2" style={{ color: '#6666AA' }}>{pkg.duration}</p>
-                        <p className="font-body text-xs mb-3" style={{ color: '#00FF88' }}>
-                          Unlimited {userResource.name}
-                        </p>
-                        <div className="mb-2">
-                          <span className="font-display text-sm font-bold" style={{ color: '#FFD700' }}>{pkg.goldCost} Gold</span>
-                        </div>
-                        <button onClick={() => handleBuy(pkg.name, 0, pkg.goldCost, '', subType, false)}
-                          className="w-full px-3 py-2 rounded font-display text-xs font-bold"
-                          style={{ background: 'linear-gradient(135deg, #FFD700, #FFEC60)', color: '#030308' }}>
-                          {pkg.goldCost} Gold
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {tab === 'coins' && (
-            <div className="space-y-6">
-              <div className="text-center mb-6">
-                <Coins size={32} className="mx-auto mb-3" style={{ color: '#FFD700' }} />
-                <h2 className="font-display text-lg font-bold mb-2" style={{ color: '#FFD700' }}>Coin Packages</h2>
-                <p className="font-body text-sm" style={{ color: '#6666AA' }}>
-                  Purchase Silver and Gold coins for premium features
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {coinPackages.map(pkg => (
-                  <div key={pkg.id} className="p-5 rounded-lg text-center" style={{ background: '#080812', border: '2px solid #FFD70030' }}>
-                    <div className="w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center" style={{ background: '#FFD70020', border: '2px solid #FFD700' }}>
-                      <Coins size={24} style={{ color: '#FFD700' }} />
+        {tab === 'resources' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {resourcePackages.map(pkg => (
+              <div key={pkg.id} className="bg-[#080812] border border-[#1A1A2E] rounded-lg p-6">
+                <h3 className="text-xl font-bold font-orbitron text-[#E8E8FF] mb-2">{pkg.name}</h3>
+                
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 rounded-full bg-[#8B00FF]/20 flex items-center justify-center">
+                      <Zap size={16} className="text-[#8B00FF]" />
                     </div>
-                    <h3 className="font-display text-sm font-bold mb-1" style={{ color: '#FFD700' }}>{pkg.name}</h3>
-                    <div className="mb-3">
-                      {pkg.silver > 0 && (
-                        <p className="font-body text-xs" style={{ color: '#C0C0C0' }}>
-                          {pkg.silver} Silver Coins
-                        </p>
-                      )}
-                      {pkg.gold > 0 && (
-                        <p className="font-body text-xs" style={{ color: '#FFD700' }}>
-                          {pkg.gold} Gold Coins
-                        </p>
-                      )}
-                    </div>
-                    <p className="font-body text-xs mb-3" style={{ color: '#00FF88' }}>
-                      {pkg.bonus}
-                    </p>
-                    <button onClick={() => handleBuy(pkg.name, pkg.silver, pkg.gold, pkg.price, undefined, true)}
-                      className="w-full px-4 py-2 rounded font-display text-xs font-bold tracking-wider"
-                      style={{ background: 'linear-gradient(135deg, #FFD700, #FFEC60)', color: '#030308' }}>
-                      {pkg.price}
-                    </button>
+                    <span className="text-[#E8E8FF] font-medium">{userResource.name}</span>
                   </div>
-                ))}
+                  <div className="text-center py-4 bg-[#1A1A2E] rounded-lg">
+                    <div className="text-2xl font-bold text-[#8B00FF]">+{pkg.amount}</div>
+                    <div className="text-xs text-[#6666AA]">Resource Fill</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[#6666AA]">Cost</span>
+                  <div className="flex items-center gap-1">
+                    <Coins size={14} className="text-[#C0C0C0]" />
+                    <span className="text-[#E8E8FF] font-medium">{pkg.silver}</span>
+                  </div>
+                </div>
+                
+                <button 
+                  onClick={() => handleBuy(pkg.name, pkg.silver, pkg.gold)}
+                  className="w-full py-3 bg-gradient-to-r from-[#8B00FF] to-[#5500CC] text-white rounded-lg font-bold hover:shadow-[0_0_16px_rgba(139,0,255,0.5)] transition-all"
+                  disabled={!currentUser || (currentUser?.currency.silver || 0) < pkg.silver}
+                >
+                  {(currentUser?.currency.silver || 0) < pkg.silver ? 'INSUFFICIENT' : 'PURCHASE'}
+                </button>
               </div>
-
-              <div className="p-4 rounded-lg" style={{ background: '#00FF8810', border: '1px solid #00FF8840' }}>
-                <p className="font-body text-xs" style={{ color: '#00FF88' }}>
-                  💰 Purchase coins to unlock premium features and content
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

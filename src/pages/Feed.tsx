@@ -1,884 +1,633 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '@/context/GameContext';
-import { getFactionColor, getFactionGlow, timeAgo } from '@/lib/gameUtils';
-import { FACTION_NAMES } from '@/types/game';
-import { 
-  Heart, MessageCircle, Repeat2, Share2, Bookmark, MoreHorizontal,
-  AlertTriangle, Skull, Star, Target, Copy, Check, Edit, Trash2, Flag, UserX, Volume2
-} from 'lucide-react';
-import { 
-  parseTextSegments, 
-  extractMentions, 
-  extractHashtags, 
-  validatePost, 
-  recordPost,
-  copyToClipboard,
-  getPostUrl,
-  calculateEngagementScore,
-  type TextSegment
-} from '@/lib/feedUtils';
+import { getFactionColor } from '@/lib/gameUtils';
+import { Heart, MessageCircle, Repeat2, Bookmark, Share2, X, MoreHorizontal, Image, Type, Send, Users, TrendingUp, Plus, Shield } from 'lucide-react';
 
-const FeedEnhanced = () => {
-  const { 
-    currentUser, users, posts, bounties, comments, clans,
-    addPost, toggleLike, repost, addComment, toggleBookmark, sharePost,
-    deletePost, editPost, incrementPostViews, followedUsers, blockedUsers,
-    toggleFollow, blockUser
-  } = useGame();
-  
+const Feed = () => {
   const navigate = useNavigate();
-  const [newPost, setNewPost] = useState('');
-  const [tab, setTab] = useState<'foryou' | 'trending' | 'clan' | 'following'>('foryou');
-  const [expandedComments, setExpandedComments] = useState<number | null>(null);
-  const [commentText, setCommentText] = useState('');
-  const [repostDropdown, setRepostDropdown] = useState<number | null>(null);
-  const [quoteModal, setQuoteModal] = useState<number | null>(null);
-  const [quoteText, setQuoteText] = useState('');
-  const [likeAnimations, setLikeAnimations] = useState<Set<number>>(new Set());
-  const [bookmarkAnimations, setBookmarkAnimations] = useState<Set<number>>(new Set());
-  const [copiedPostId, setCopiedPostId] = useState<number | null>(null);
-  const [postMenuOpen, setPostMenuOpen] = useState<number | null>(null);
-  const [editingPost, setEditingPost] = useState<number | null>(null);
-  const [editText, setEditText] = useState('');
-  const [hashtagFilter, setHashtagFilter] = useState<string | null>(null);
-  const [postError, setPostError] = useState<string | null>(null);
+  const { currentUser, posts, users, clans, toggleLike, addPost, addComment } = useGame();
   
-  const factionColor = currentUser ? getFactionColor(currentUser.anime) : '#8B00FF';
+  // State for interactions
+  const [likingPosts, setLikingPosts] = useState<Set<number>>(new Set());
+  const [animatingPosts, setAnimatingPosts] = useState<Set<number>>(new Set());
 
-  // Get user helper
-  const getUser = useCallback((id: number) => {
-    if (currentUser?.id === id) return currentUser;
-    return users.find(u => u.id === id);
-  }, [currentUser, users]);
-
-  // Filter posts based on tab and blocked users
-  const filteredPosts = useMemo(() => {
-    let filtered = posts.filter(p => !blockedUsers.includes(p.userId));
-    
-    // Apply hashtag filter if active
-    if (hashtagFilter) {
-      filtered = filtered.filter(p => 
-        p.hashtags?.includes(hashtagFilter.toLowerCase()) ||
-        p.text.toLowerCase().includes(`#${hashtagFilter.toLowerCase()}`)
-      );
+  // Well-defined demo posts for better visualization
+  const demoPosts = [
+    {
+      id: 1,
+      userId: 1,
+      text: "Just mastered the Rasengan! Who's ready for a training session? 🌀⚡ The power of the Nine-Tails flows through me!",
+      timestamp: Date.now() - 1000 * 60 * 5,
+      likedBy: [2, 3, 4],
+      comments: 12,
+      anime: 'naruto' as const
+    },
+    {
+      id: 2,
+      userId: 2,
+      text: "The Domain Expansion is ready. Unlimited Void awaits those who challenge me. 👁️✨ None can escape my infinite void.",
+      timestamp: Date.now() - 1000 * 60 * 15,
+      likedBy: [1, 3, 5],
+      comments: 8,
+      anime: 'jjk' as const
+    },
+    {
+      id: 3,
+      userId: 3,
+      text: "King of the Pirates? More like King of the Battle Arena! Who wants to test their Haki against mine? 💫⚔️ I'll show you the power of conqueror's Haki!",
+      timestamp: Date.now() - 1000 * 60 * 30,
+      likedBy: [1, 2, 4],
+      comments: 15,
+      anime: 'onepiece' as const
+    },
+    {
+      id: 4,
+      userId: 4,
+      text: "Water Breathing Form: Waterfall Basin! Perfect technique for clearing out the battle lobby. 🌊💪 Let me show you the way of the Demon Slayer!",
+      timestamp: Date.now() - 1000 * 60 * 45,
+      likedBy: [1, 2, 3],
+      comments: 6,
+      anime: 'demonslayer' as const
+    },
+    {
+      id: 5,
+      userId: 5,
+      text: "Anti-magic swords are ready! No jutsus, no cursed energy - just pure skill. Who's brave enough? ⚔️✨ My demon-slayer sword awaits!",
+      timestamp: Date.now() - 1000 * 60 * 60,
+      likedBy: [2, 3, 4],
+      comments: 10,
+      anime: 'blackclover' as const
+    },
+    {
+      id: 6,
+      userId: 6,
+      text: "Super Saiyan transformation achieved in the battle arena! Power levels are off the charts! 🔥⚡ KA-ME-HA-ME-HA!",
+      timestamp: Date.now() - 1000 * 60 * 90,
+      likedBy: [1, 3, 5],
+      comments: 20,
+      anime: 'dragonball' as const
+    },
+    {
+      id: 7,
+      userId: 7,
+      text: "Nen abilities mastered! My Bungee Gum is ready for battle. Who wants to test their luck against me? 🌀💪 Let's see what you're made of!",
+      timestamp: Date.now() - 1000 * 60 * 120,
+      likedBy: [1, 2, 6],
+      comments: 9,
+      anime: 'hxh' as const
+    },
+    {
+      id: 8,
+      userId: 8,
+      text: "Bankai achieved! My Zanpakuto's true form is unleashed. Prepare to face the power of a thousand souls! ⚔️✨",
+      timestamp: Date.now() - 1000 * 60 * 150,
+      likedBy: [3, 4, 5],
+      comments: 14,
+      anime: 'bleach' as const
     }
-    
-    switch (tab) {
-      case 'following':
-        return filtered.filter(p => followedUsers.includes(p.userId));
-      
-      case 'trending':
-        return [...filtered].sort((a, b) => 
-          calculateEngagementScore(b) - calculateEngagementScore(a)
-        );
-      
-      case 'clan': {
-        if (!currentUser?.clanId) return [];
-        const clanMemberIds = users
-          .filter(u => u.clanId === currentUser.clanId)
-          .map(u => u.id);
-        return filtered.filter(p => clanMemberIds.includes(p.userId));
-      }
-      
-      case 'foryou':
-      default:
-        return filtered;
-    }
-  }, [posts, tab, followedUsers, blockedUsers, currentUser, users, hashtagFilter]);
+  ];
 
-  // Handle post creation
-  const handlePost = useCallback(() => {
-    if (!newPost.trim()) return;
-    
-    const validation = validatePost(newPost);
-    if (!validation.valid) {
-      setPostError(validation.error || 'Invalid post');
-      setTimeout(() => setPostError(null), 3000);
-      return;
-    }
-    
-    recordPost();
-    addPost(newPost.trim());
-    setNewPost('');
-    setPostError(null);
-  }, [newPost, addPost]);
+  // Well-defined demo users
+  const demoUsers = [
+    { id: 1, username: 'NarutoUzumaki', anime: 'naruto' as const },
+    { id: 2, username: 'GojoSatoru', anime: 'jjk' as const },
+    { id: 3, username: 'LuffyCaptain', anime: 'onepiece' as const },
+    { id: 4, username: 'IchigoKurosaki', anime: 'demonslayer' as const },
+    { id: 5, username: 'AstaBlack', anime: 'blackclover' as const },
+    { id: 6, username: 'GokuSaiyan', anime: 'dragonball' as const },
+    { id: 7, username: 'KilluaZoldyck', anime: 'hxh' as const },
+    { id: 8, username: 'ByakuyaKuchiki', anime: 'bleach' as const }
+  ];
 
-  // Handle like with animation
-  const handleLike = useCallback((postId: number) => {
-    const post = posts.find(p => p.id === postId);
-    if (post && currentUser && post.userId === currentUser.id) return;
-    
-    toggleLike(postId);
-    setLikeAnimations(prev => new Set(prev).add(postId));
-    setTimeout(() => {
-      setLikeAnimations(prev => {
-        const next = new Set(prev);
-        next.delete(postId);
-        return next;
-      });
-    }, 600);
-  }, [posts, currentUser, toggleLike]);
+  // Use demo posts if real ones are empty, otherwise use real posts
+  const allPosts = posts.length > 0 ? posts : demoPosts;
+  const allUsers = users.length > 0 ? users : demoUsers;
 
-  // Handle bookmark with animation
-  const handleBookmark = useCallback((postId: number) => {
-    toggleBookmark(postId);
-    setBookmarkAnimations(prev => new Set(prev).add(postId));
-    setTimeout(() => {
-      setBookmarkAnimations(prev => {
-        const next = new Set(prev);
-        next.delete(postId);
-        return next;
-      });
-    }, 600);
-  }, [toggleBookmark]);
-
-  // Handle share (copy link)
-  const handleShare = useCallback(async (postId: number) => {
-    const url = getPostUrl(postId);
-    const success = await copyToClipboard(url);
-    
-    if (success) {
-      sharePost(postId);
-      setCopiedPostId(postId);
-      setTimeout(() => setCopiedPostId(null), 2000);
-    }
-  }, [sharePost]);
-
-  // Handle repost
-  const handleRepost = useCallback((postId: number) => {
-    repost(postId);
-    setRepostDropdown(null);
-  }, [repost]);
-
-  // Handle quote post
-  const handleQuotePost = useCallback(() => {
-    if (!quoteModal || !quoteText.trim()) return;
-    const origPost = posts.find(p => p.id === quoteModal);
-    addPost(quoteText.trim(), quoteModal, origPost?.text);
-    setQuoteModal(null);
-    setQuoteText('');
-  }, [quoteModal, quoteText, posts, addPost]);
-
-  // Handle comment
-  const handleComment = useCallback((postId: number) => {
-    if (!commentText.trim()) return;
-    addComment(postId, commentText.trim());
-    setCommentText('');
-  }, [commentText, addComment]);
-
-  // Handle post deletion
-  const handleDeletePost = useCallback((postId: number) => {
-    if (window.confirm('Delete this post? This cannot be undone.')) {
-      deletePost(postId);
-      setPostMenuOpen(null);
-    }
-  }, [deletePost]);
-
-  // Handle post edit
-  const handleEditPost = useCallback((postId: number) => {
-    const post = posts.find(p => p.id === postId);
-    if (!post) return;
-    
-    setEditingPost(postId);
-    setEditText(post.text);
-    setPostMenuOpen(null);
-  }, [posts]);
-
-  // Save edited post
-  const handleSaveEdit = useCallback((postId: number) => {
-    if (!editText.trim()) return;
-    
-    const validation = validatePost(editText);
-    if (!validation.valid) {
-      alert(validation.error);
-      return;
-    }
-    
-    editPost(postId, editText.trim());
-    setEditingPost(null);
-    setEditText('');
-  }, [editText, editPost]);
-
-  // Navigate to profile
-  const handleProfileClick = useCallback((userId: number) => {
-    navigate(`/profile?user=${userId}`);
-  }, [navigate]);
-
-  // Handle mention click
-  const handleMentionClick = useCallback((username: string) => {
-    const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
-    if (user) {
-      navigate(`/profile?user=${user.id}`);
-    }
-  }, [users, navigate]);
-
-  // Handle hashtag click
-  const handleHashtagClick = useCallback((hashtag: string) => {
-    setHashtagFilter(hashtag);
-    setTab('foryou');
-  }, []);
-
-  // Render text with clickable links
-  const renderText = useCallback((text: string) => {
-    const segments = parseTextSegments(text);
-    
-    return segments.map((segment, index) => {
-      switch (segment.type) {
-        case 'mention':
-          return (
-            <span
-              key={index}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleMentionClick(segment.username);
-              }}
-              className="cursor-pointer hover:underline"
-              style={{ color: '#8B00FF' }}
-            >
-              {segment.raw}
-            </span>
-          );
-        
-        case 'hashtag':
-          return (
-            <span
-              key={index}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleHashtagClick(segment.hashtag);
-              }}
-              className="cursor-pointer hover:underline"
-              style={{ color: '#00C8FF' }}
-            >
-              {segment.raw}
-            </span>
-          );
-        
-        case 'url':
-          return (
-            <a
-              key={index}
-              href={segment.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="hover:underline"
-              style={{ color: '#00FF88' }}
-            >
-              {segment.url}
-            </a>
-          );
-        
-        case 'text':
-        default:
-          return <span key={index}>{segment.content}</span>;
-      }
-    });
-  }, [handleMentionClick, handleHashtagClick]);
-
-  // Increment views when post is viewed
+  // Add custom CSS for vertical scrolling and full width layout
   useEffect(() => {
-    const viewedPosts = new Set<number>();
+    const style = document.createElement('style');
+    style.textContent = `
+      /* Override feed layout to use full width */
+      .feed-page {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow-x: hidden !important;
+      }
+      
+      /* Ensure verification button is perfect circle on mobile */
+      @media (max-width: 767px) {
+        .verification-badge {
+          width: 16px !important;
+          height: 16px !important;
+          border-radius: 50% !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
+      }
+      
+      /* Force action buttons to be horizontal - override any inherited styles */
+      .flex.flex-row {
+        flex-direction: row !important;
+      }
+      
+      .flex.flex-row > div {
+        display: inline-flex !important;
+        flex-direction: row !important;
+      }
+      
+      .flex.flex-row button {
+        display: inline-flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+      }
+      
+      /* More specific override for action buttons */
+      .flex.flex-row .flex.items-center {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+      }
+      
+      .flex.flex-row .flex.items-center button {
+        display: inline-flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        width: auto !important;
+        flex-shrink: 0 !important;
+      }
+      
+      .flex.flex-row .flex.items-center button span {
+        display: inline-block !important;
+      }
+      
+      /* Remove center column constraints */
+      .feed-center-column {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      
+      /* Override global input group flex-direction */
+      .input-group {
+        flex-direction: row !important;
+      }
+      
+      /* Override global width constraints */
+      .notifications-page,
+      .profile-page {
+        width: auto !important;
+        max-width: none !important;
+      }
+      
+      /* Override global flex-start alignment */
+      .notifications-page {
+        align-items: flex-start !important;
+        flex-direction: row !important;
+      }
+      
+      /* Apply same horizontal fix to all potential problematic components */
+      .flex-row,
+      .flex.items-center,
+      .flex.justify-between,
+      .flex.justify-around {
+        display: flex !important;
+        flex-direction: row !important;
+      }
+      
+      .flex-row > *,
+      .flex.items-center > *,
+      .flex.justify-between > *,
+      .flex.justify-around > * {
+        display: inline-flex !important;
+        flex-direction: row !important;
+      }
+      
+      .flex-row button,
+      .flex.items-center button,
+      .flex.justify-between button,
+      .flex.justify-around button {
+        display: inline-flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        width: auto !important;
+        flex-shrink: 0 !important;
+      }
+      
+      .posts-vertical-scroll {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 1rem !important;
+        overflow: visible !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+      }
+      
+      @media (min-width: 768px) {
+        .posts-vertical-scroll {
+          display: block !important;
+          flex-direction: column !important;
+          overflow: visible !important;
+          padding: 0 !important;
+          height: auto !important;
+        }
+      }
+      
+      /* Mobile posts - X-style flat feed */
+      @media (max-width: 767px) {
+        .posts-vertical-scroll .post-card {
+          width: 100% !important;
+          min-width: 100% !important;
+          max-width: 100% !important;
+          margin: 0 !important;
+          height: fit-content !important;
+          flex-shrink: 0 !important;
+          padding: 16px !important;
+          border-radius: 0 !important;
+          border-bottom: 1px solid #2F3336 !important;
+          background: transparent !important;
+        }
+      }
+      
+      /* Desktop posts - X-style edge-to-edge */
+      @media (min-width: 768px) {
+        .posts-vertical-scroll .post-card {
+          width: 100% !important;
+          min-width: 100% !important;
+          max-width: 100% !important;
+          margin: 0 !important;
+          padding: 16px !important;
+          border-radius: 0 !important;
+          border-bottom: 1px solid #2F3336 !important;
+          background: transparent !important;
+        }
+      }
+      
+      /* Large desktop posts - still edge-to-edge */
+      @media (min-width: 1024px) {
+        .posts-vertical-scroll .post-card {
+          max-width: 100% !important;
+          padding: 16px !important;
+          margin: 0 !important;
+        }
+      }
+      
+      /* Force mobile layout */
+      @media (max-width: 767px) {
+        .posts-vertical-scroll > * {
+          display: block !important;
+          flex-shrink: 0 !important;
+        }
+      }
+      
+      /* Enhanced feed tabs layout on mobile */
+      @media (max-width: 767px) {
+        .feed-center-column > div:first-child {
+          display: flex !important;
+          justify-content: space-between !important;
+          overflow-x: hidden !important;
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+        }
+        
+        .feed-center-column > div:first-child::-webkit-scrollbar {
+          display: none !important;
+        }
+        
+        .feed-center-column > div:first-child button {
+          flex: 1 !important;
+          text-align: center !important;
+          padding: 14px 8px !important;
+          font-size: 12px !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
     
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const postId = parseInt(entry.target.getAttribute('data-post-id') || '0');
-            if (postId && !viewedPosts.has(postId)) {
-              viewedPosts.add(postId);
-              incrementPostViews(postId);
-            }
-          }
-        });
-      },
-      { threshold: 0.5 }
-    );
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+  const [newPost, setNewPost] = useState('');
+  const [isComposeModalOpen, setIsComposeModalOpen] = useState(false);
+  const [tab, setTab] = useState('foryou');
+  const [commentText, setCommentText] = useState<{ [postId: number]: string }>({});
+  const composeRef = useRef<HTMLDivElement>(null);
 
-    const postElements = document.querySelectorAll('[data-post-id]');
-    postElements.forEach((el) => observer.observe(el));
+  
+  const filteredPosts = allPosts.filter(post => {
+    if (tab === 'foryou') return true;
+    if (tab === 'following') return false; // TODO: implement following logic
+    return true;
+  });
 
-    return () => observer.disconnect();
-  }, [filteredPosts, incrementPostViews]);
+  const handlePost = () => {
+    if (newPost.trim()) {
+      addPost(newPost);
+      setNewPost('');
+      setIsComposeModalOpen(false);
+    }
+  };
 
-  const activeBounties = bounties.filter(b => b.active);
-  const postComments = useCallback((postId: number) => comments.filter(c => c.postId === postId), [comments]);
+  const handleComment = (postId: number) => {
+    const text = commentText[postId];
+    if (text?.trim()) {
+      addComment(postId, text);
+      setCommentText(prev => ({ ...prev, [postId]: '' }));
+    }
+  };
+
+  // Handle post body click - navigate to post detail
+  const handlePostClick = (postId: number, event: React.MouseEvent) => {
+    // Prevent navigation if clicking on buttons
+    if ((event.target as HTMLElement).closest('button')) {
+      return;
+    }
+    navigate(`/post/${postId.toString()}`);
+  };
+
+  // Handle like with instant feedback
+  const handleLike = async (postId: number, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent post click
+    
+    if (likingPosts.has(postId)) return; // Prevent double clicks
+    
+    setLikingPosts(prev => new Set(prev).add(postId));
+    setAnimatingPosts(prev => new Set(prev).add(postId));
+    
+    // Optimistic update - toggle immediately
+    toggleLike(postId);
+    
+    // Remove animation state after animation
+    setTimeout(() => {
+      setAnimatingPosts(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(postId);
+        return newSet;
+      });
+    }, 300);
+    
+    // Remove loading state
+    setTimeout(() => {
+      setLikingPosts(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(postId);
+        return newSet;
+      });
+    }, 100);
+  };
+
+  // Handle repost - show bottom sheet (placeholder for now)
+  const handleRepost = (postId: number, event: React.MouseEvent) => {
+    event.stopPropagation();
+    // TODO: Implement repost bottom sheet
+    console.log('Repost clicked for post:', postId);
+  };
+
+  // Handle reply - open reply composer (placeholder for now)
+  const handleReply = (postId: number, event: React.MouseEvent) => {
+    event.stopPropagation();
+    // TODO: Implement reply composer
+    console.log('Reply clicked for post:', postId);
+  };
+
+  // Handle share - system share sheet (placeholder for now)
+  const handleShare = (postId: number, event: React.MouseEvent) => {
+    event.stopPropagation();
+    // TODO: Implement system share
+    console.log('Share clicked for post:', postId);
+  };
+
+  // Handle profile navigation
+  const handleProfileClick = (userId: number, event: React.MouseEvent) => {
+    event.stopPropagation();
+    navigate(`/profile?user=${userId}`);
+  };
 
   return (
-    <div className="page-enter flex flex-col lg:flex-row">
-      <div className="flex-1 max-w-2xl mx-auto p-4 md:p-6 lg:pr-0">
-        {/* Composer */}
-        <div className="rounded-lg p-5 mb-6" style={{ background: '#080812', border: `1px solid ${factionColor}30` }}>
-          <textarea
-            value={newPost}
-            onChange={e => setNewPost(e.target.value)}
-            className="w-full bg-transparent font-body text-sm resize-none focus:outline-none mb-3"
-            style={{ color: '#E8E8FF', minHeight: '60px' }}
-            placeholder="Speak your truth... (500 chars max, @mention users, #hashtags)"
-            maxLength={500}
-          />
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <span className="font-body text-xs" style={{ color: newPost.length > 450 ? '#FF003C' : '#6666AA' }}>
-                {newPost.length}/500
-              </span>
-              {postError && (
-                <span className="font-body text-xs" style={{ color: '#FF003C' }}>
-                  {postError}
-                </span>
-              )}
-            </div>
-            <button 
-              onClick={handlePost} 
-              disabled={!newPost.trim()}
-              className="px-6 py-2 rounded-md font-display text-xs font-bold tracking-widest transition-opacity"
-              style={{ 
-                background: `linear-gradient(135deg, ${factionColor}, ${getFactionGlow(currentUser?.anime || 'jjk')})`, 
-                color: '#030308',
-                opacity: newPost.trim() ? 1 : 0.5
-              }}
+    <div className="feed-page">
+      {/* Feed Container */}
+      <div>
+        {/* Feed Tabs - X Style */}
+        <div className="flex border-b border-gray-800 bg-black sticky top-0 z-10" style={{ background: '#000000' }}>
+          {['foryou', 'following'].map(t => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`flex-1 whitespace-nowrap px-4 py-4 text-center font-medium text-[15px] transition-all relative ${
+                tab === t ? 'text-white' : 'text-gray-500 hover:text-gray-300'
+              }`}
+              style={{ fontFamily: 'Inter, sans-serif' }}
             >
-              POST TO ZANKOKU
-            </button>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-4 mb-6 border-b" style={{ borderColor: '#1A1A2E' }}>
-          {(['foryou', 'trending', 'clan', 'following'] as const).map(t => (
-            <button 
-              key={t} 
-              onClick={() => { setTab(t); setHashtagFilter(null); }}
-              className="pb-2 font-body text-sm font-semibold capitalize transition-colors relative"
-              style={{ 
-                color: tab === t ? factionColor : '#6666AA', 
-                borderBottom: tab === t ? `2px solid ${factionColor}` : '2px solid transparent' 
-              }}
-            >
-              {t === 'foryou' ? 'For You' : t === 'clan' ? 'Clan Feed' : t}
-              {t === 'following' && followedUsers.length > 0 && (
-                <span className="absolute -top-1 -right-2 w-2 h-2 rounded-full" style={{ background: factionColor }} />
+              {t === 'foryou' && 'For you'}
+              {t === 'following' && 'Following'}
+              {tab === t && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-500" style={{ background: 'var(--neon-blue)' }} />
               )}
             </button>
           ))}
         </div>
 
-        {/* Hashtag filter indicator */}
-        {hashtagFilter && (
-          <div className="mb-4 flex items-center gap-2 p-3 rounded-lg" style={{ background: '#080812', border: '1px solid #00C8FF40' }}>
-            <span className="font-body text-sm" style={{ color: '#00C8FF' }}>
-              Filtering by: #{hashtagFilter}
-            </span>
-            <button 
-              onClick={() => setHashtagFilter(null)}
-              className="ml-auto font-body text-xs hover:brightness-125"
-              style={{ color: '#6666AA' }}
-            >
-              Clear filter
-            </button>
-          </div>
-        )}
-
-        {/* Empty state */}
-        {filteredPosts.length === 0 && (
-          <div className="text-center py-12">
-            <p className="font-body text-sm" style={{ color: '#6666AA' }}>
-              {tab === 'following' && followedUsers.length === 0 
-                ? 'Follow users to see their posts here'
-                : tab === 'clan' && !currentUser?.clanId
-                ? 'Join a clan to see clan posts'
-                : hashtagFilter
-                ? `No posts found with #${hashtagFilter}`
-                : 'No posts yet. Be the first to post!'}
-            </p>
-          </div>
-        )}
-
-        {/* Posts */}
-        <div className="space-y-3">
-          {filteredPosts.map((post, i) => {
-            const author = getUser(post.userId);
-            if (!author) return null;
+        {/* Posts - Vertical scroll on mobile */}
+        <div className="posts-vertical-scroll">
+          {filteredPosts.map(post => {
+            const author = allUsers.find(u => u.id === post.userId);
+            const isLiked = post.likedBy?.includes(currentUser?.id || 0);
             
-            const authorColor = getFactionColor(author.anime);
-            const hasBounty = author.bountyActive;
-            const isLiked = currentUser ? post.likedBy.includes(currentUser.id) : false;
-            const isBookmarked = currentUser ? post.bookmarkedBy.includes(currentUser.id) : false;
-            const isReposted = currentUser ? post.repostedBy.includes(currentUser.id) : false;
-            const isOwnPost = currentUser?.id === post.userId;
-            const showComments = expandedComments === post.id;
-            const pComments = postComments(post.id);
-            const isEditing = editingPost === post.id;
-            const isFollowing = followedUsers.includes(post.userId);
-
             return (
-              <div 
-                key={post.id} 
-                data-post-id={post.id}
-                className="rounded-lg p-5 transition-all duration-200 stagger-item"
-                style={{ 
-                  animationDelay: `${i * 50}ms`, 
-                  background: '#080812', 
-                  border: `1px solid ${hasBounty ? '#FF003C40' : '#1A1A2E'}`, 
-                  boxShadow: hasBounty ? '0 0 15px rgba(255,0,60,0.1)' : 'none' 
-                }}
-              >
-                <div className="flex items-start gap-3">
-                  {/* Avatar - clickable */}
+              <div key={post.id} className="post-card w-full flex-shrink-0">
+                <div className="flex gap-3" onClick={(e) => handlePostClick(post.id, e)}>
+                  {/* Avatar - clickable to profile */}
                   <div 
-                    onClick={() => handleProfileClick(author.id)}
-                    className="w-10 h-10 rounded-full flex items-center justify-center font-display text-sm font-bold shrink-0 cursor-pointer hover:brightness-125 transition-all"
-                    style={{ background: `${authorColor}20`, border: `2px solid ${authorColor}`, color: authorColor }}
+                    className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 bg-gray-800 cursor-pointer hover:bg-gray-700 transition-colors"
+                    style={{ color: 'white' }}
+                    onClick={(e) => handleProfileClick(author?.id || 0, e)}
                   >
-                    {author.username[0]}
+                    {author?.username[0]?.toUpperCase() || '?'}
                   </div>
                   
+                  {/* Main Content - everything aligns to avatar */}
                   <div className="flex-1 min-w-0">
-                    {/* User info */}
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                    {/* Name + Handle + Time - inline like X */}
+                    <div className="flex items-center gap-1 mb-1">
                       <span 
-                        onClick={() => handleProfileClick(author.id)}
-                        className="font-body text-sm font-bold cursor-pointer hover:underline" 
-                        style={{ color: '#E8E8FF' }}
+                        className="font-bold text-white cursor-pointer hover:underline"
+                        style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px' }}
+                        onClick={(e) => handleProfileClick(author?.id || 0, e)}
                       >
-                        {author.username}
+                        {author?.username || 'Unknown User'}
                       </span>
-                      <span 
-                        className="px-1.5 py-0.5 rounded text-xs font-body font-semibold" 
-                        style={{ background: `${authorColor}20`, color: authorColor, fontSize: '10px' }}
-                      >
-                        {FACTION_NAMES[author.anime]}
-                      </span>
-                      {author.roleTag && (
-                        <span 
-                          className="px-1.5 py-0.5 rounded text-xs font-display font-bold role-tag-shimmer" 
-                          style={{ background: '#1A1A2E', color: '#E8E8FF', fontSize: '9px', letterSpacing: '0.1em' }}
-                        >
-                          [{author.roleTag}]
-                        </span>
-                      )}
-                      {hasBounty && (
-                        <span 
-                          className="px-1.5 py-0.5 rounded text-xs font-bold bounty-pulse flex items-center gap-1" 
-                          style={{ background: '#FF003C20', color: '#FF003C', fontSize: '9px' }}
-                        >
-                          <AlertTriangle size={10} strokeWidth={1.5} /> BOUNTY
-                        </span>
-                      )}
-                      {author.betrayalHistory.length > 0 && (
-                        <span 
-                          className="px-1.5 py-0.5 rounded text-xs font-bold flex items-center gap-1" 
-                          style={{ background: '#FF003C10', color: '#FF003C80', fontSize: '9px' }}
-                        >
-                          <Skull size={10} strokeWidth={1.5} /> TRAITOR x{author.betrayalHistory.length}
-                        </span>
-                      )}
-                      {author.cowardStars > 0 && (
-                        <span className="coward-shake flex items-center gap-0.5">
-                          {Array.from({ length: author.cowardStars }).map((_, si) => (
-                            <Star key={si} size={12} fill="#FF003C" strokeWidth={0} />
-                          ))}
-                        </span>
-                      )}
-                      
-                      {/* Follow button */}
-                      {!isOwnPost && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleFollow(author.id);
-                          }}
-                          className="ml-auto px-2 py-1 rounded text-xs font-body font-semibold transition-all hover:brightness-125"
-                          style={{ 
-                            background: isFollowing ? 'transparent' : `${factionColor}20`,
-                            border: `1px solid ${isFollowing ? '#6666AA' : factionColor}`,
-                            color: isFollowing ? '#6666AA' : factionColor
-                          }}
-                        >
-                          {isFollowing ? 'Following' : 'Follow'}
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Post text - editable or clickable */}
-                    {isEditing ? (
-                      <div className="mb-3">
-                        <textarea
-                          value={editText}
-                          onChange={e => setEditText(e.target.value)}
-                          className="w-full bg-transparent font-body text-sm resize-none focus:outline-none p-2 rounded"
-                          style={{ color: '#E8E8FF', minHeight: '60px', background: '#0D0D1A', border: `1px solid ${factionColor}30` }}
-                          maxLength={500}
-                        />
-                        <div className="flex gap-2 mt-2">
-                          <button
-                            onClick={() => handleSaveEdit(post.id)}
-                            className="px-3 py-1 rounded font-body text-xs font-semibold"
-                            style={{ background: `${factionColor}20`, color: factionColor }}
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={() => setEditingPost(null)}
-                            className="px-3 py-1 rounded font-body text-xs"
-                            style={{ color: '#6666AA' }}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <p 
-                        className="font-body text-sm mb-3 cursor-pointer hover:opacity-80" 
-                        style={{ color: '#E8E8FF' }}
-                        onClick={() => navigate(`/post/${post.id}`)}
-                      >
-                        {renderText(post.text)}
-                      </p>
-                    )}
-
-                    {/* Quoted post */}
-                    {post.quotedPostId && post.quoteText && (
+                      {/* Verified checkmark - perfect circle */}
                       <div 
-                        className="p-3 rounded-lg mb-3 cursor-pointer hover:brightness-110" 
-                        style={{ background: '#0D0D1A', border: '1px solid #1A1A2E' }}
-                        onClick={() => navigate(`/post/${post.quotedPostId}`)}
-                      >
-                        <p className="font-body text-xs" style={{ color: '#6666AA' }}>{post.quoteText}</p>
-                      </div>
-                    )}
-
-                    {/* Action buttons */}
-                    <div className="flex items-center gap-5">
-                      {/* Like */}
-                      <button
-                        onClick={() => handleLike(post.id)}
-                        disabled={isOwnPost}
-                        className="font-body text-xs flex items-center gap-1.5 transition-all duration-200 relative"
+                        className="verification-badge w-4 h-4 flex items-center justify-center"
                         style={{ 
-                          color: isLiked ? '#FF6B8A' : '#6666AA', 
-                          opacity: isOwnPost ? 0.4 : 1, 
-                          cursor: isOwnPost ? 'not-allowed' : 'pointer' 
+                          background: 'var(--neon-blue)', 
+                          color: 'white', 
+                          borderRadius: '50%',
+                          width: '16px',
+                          height: '16px'
                         }}
-                        title={isOwnPost ? 'You cannot like your own post' : ''}
                       >
-                        <Heart size={14} strokeWidth={1.5} fill={isLiked ? '#FF6B8A' : 'none'} />
-                        {post.likes}
-                        {likeAnimations.has(post.id) && (
-                          <span className="like-burst" />
-                        )}
-                      </button>
-
-                      {/* Comment */}
-                      <button 
-                        onClick={() => setExpandedComments(showComments ? null : post.id)}
-                        className="font-body text-xs flex items-center gap-1.5 transition-colors hover:brightness-125" 
-                        style={{ color: '#6666AA' }}
-                      >
-                        <MessageCircle size={14} strokeWidth={1.5} /> 
-                        {post.comments}
-                      </button>
-
-                      {/* Repost */}
-                      <div className="relative">
-                        <button 
-                          onClick={() => setRepostDropdown(repostDropdown === post.id ? null : post.id)}
-                          className="font-body text-xs flex items-center gap-1.5 transition-colors hover:brightness-125"
-                          style={{ color: isReposted ? '#00FF88' : '#6666AA' }}
-                        >
-                          <Repeat2 size={14} strokeWidth={1.5} /> 
-                          {post.reposts}
-                        </button>
-                        {repostDropdown === post.id && (
-                          <div 
-                            className="absolute bottom-full left-0 mb-2 rounded-lg p-1 z-20" 
-                            style={{ background: '#0D0D1A', border: '1px solid #2A2A4E', minWidth: '160px' }}
-                          >
-                            <button 
-                              onClick={() => handleRepost(post.id)}
-                              className="w-full text-left px-3 py-2 rounded font-body text-xs hover:brightness-125 flex items-center gap-2"
-                              style={{ color: '#E8E8FF' }}
-                            >
-                              <Repeat2 size={14} /> Repost
-                            </button>
-                            <button 
-                              onClick={() => { setQuoteModal(post.id); setRepostDropdown(null); }}
-                              className="w-full text-left px-3 py-2 rounded font-body text-xs hover:brightness-125 flex items-center gap-2"
-                              style={{ color: '#E8E8FF' }}
-                            >
-                              <Share2 size={14} /> Quote Post
-                            </button>
-                          </div>
-                        )}
+                        <span style={{ fontSize: '10px', lineHeight: '1' }}>✓</span>
                       </div>
-
-                      {/* Share (Copy Link) */}
-                      <button
-                        onClick={() => handleShare(post.id)}
-                        className="font-body text-xs flex items-center gap-1.5 transition-colors hover:brightness-125"
-                        style={{ color: copiedPostId === post.id ? '#00FF88' : '#6666AA' }}
-                        title="Copy link to post"
-                      >
-                        {copiedPostId === post.id ? (
-                          <Check size={14} strokeWidth={1.5} />
-                        ) : (
-                          <Copy size={14} strokeWidth={1.5} />
-                        )}
-                        {post.shares}
-                      </button>
-
-                      {/* Bookmark */}
-                      <button
-                        onClick={() => handleBookmark(post.id)}
-                        className="font-body text-xs flex items-center gap-1.5 transition-all duration-200 relative"
-                        style={{ color: isBookmarked ? '#FFD700' : '#6666AA' }}
-                        title={isBookmarked ? 'Remove bookmark' : 'Bookmark post'}
-                      >
-                        <Bookmark size={14} strokeWidth={1.5} fill={isBookmarked ? '#FFD700' : 'none'} />
-                        {bookmarkAnimations.has(post.id) && (
-                          <span className="like-burst" style={{ background: '#FFD700' }} />
-                        )}
-                      </button>
-
-                      {/* Post menu */}
-                      <div className="relative ml-auto">
-                        <button
-                          onClick={() => setPostMenuOpen(postMenuOpen === post.id ? null : post.id)}
-                          className="font-body text-xs transition-colors hover:brightness-125"
-                          style={{ color: '#6666AA' }}
-                        >
-                          <MoreHorizontal size={14} strokeWidth={1.5} />
-                        </button>
-                        {postMenuOpen === post.id && (
-                          <div 
-                            className="absolute bottom-full right-0 mb-2 rounded-lg p-1 z-20" 
-                            style={{ background: '#0D0D1A', border: '1px solid #2A2A4E', minWidth: '140px' }}
-                          >
-                            {isOwnPost ? (
-                              <>
-                                <button 
-                                  onClick={() => handleEditPost(post.id)}
-                                  className="w-full text-left px-3 py-2 rounded font-body text-xs hover:brightness-125 flex items-center gap-2"
-                                  style={{ color: '#E8E8FF' }}
-                                >
-                                  <Edit size={12} /> Edit
-                                </button>
-                                <button 
-                                  onClick={() => handleDeletePost(post.id)}
-                                  className="w-full text-left px-3 py-2 rounded font-body text-xs hover:brightness-125 flex items-center gap-2"
-                                  style={{ color: '#FF003C' }}
-                                >
-                                  <Trash2 size={12} /> Delete
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <button 
-                                  onClick={() => {
-                                    alert('Post reported to moderators');
-                                    setPostMenuOpen(null);
-                                  }}
-                                  className="w-full text-left px-3 py-2 rounded font-body text-xs hover:brightness-125 flex items-center gap-2"
-                                  style={{ color: '#E8E8FF' }}
-                                >
-                                  <Flag size={12} /> Report
-                                </button>
-                                <button 
-                                  onClick={() => {
-                                    blockUser(author.id);
-                                    setPostMenuOpen(null);
-                                  }}
-                                  className="w-full text-left px-3 py-2 rounded font-body text-xs hover:brightness-125 flex items-center gap-2"
-                                  style={{ color: '#FF003C' }}
-                                >
-                                  <UserX size={12} /> Block User
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      <span className="font-body text-xs" style={{ color: '#333355' }}>
-                        {timeAgo(post.timestamp)}
+                      <span className="text-gray-500" style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px' }}>
+                        @{author?.username?.toLowerCase() || 'unknown'} · {new Date(post.timestamp).toLocaleDateString()}
                       </span>
                     </div>
 
-                    {/* Inline comments */}
-                    {showComments && (
-                      <div className="mt-4 pt-4" style={{ borderTop: '1px solid #1A1A2E' }}>
-                        <div className="space-y-3 mb-3">
-                          {pComments.map(c => {
-                            const cAuthor = getUser(c.userId);
-                            if (!cAuthor) return null;
-                            const cColor = getFactionColor(cAuthor.anime);
-                            return (
-                              <div key={c.id} className="flex items-start gap-2">
-                                <div 
-                                  onClick={() => handleProfileClick(cAuthor.id)}
-                                  className="w-6 h-6 rounded-full flex items-center justify-center font-display text-[9px] font-bold shrink-0 cursor-pointer hover:brightness-125"
-                                  style={{ background: `${cColor}20`, border: `1px solid ${cColor}`, color: cColor }}
-                                >
-                                  {cAuthor.username[0]}
-                                </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-0.5">
-                                    <span 
-                                      onClick={() => handleProfileClick(cAuthor.id)}
-                                      className="font-body text-xs font-bold cursor-pointer hover:underline" 
-                                      style={{ color: '#E8E8FF' }}
-                                    >
-                                      {cAuthor.username}
-                                    </span>
-                                    <span 
-                                      className="px-1 py-0.5 rounded font-body" 
-                                      style={{ background: `${cColor}15`, color: cColor, fontSize: '8px' }}
-                                    >
-                                      {FACTION_NAMES[cAuthor.anime]}
-                                    </span>
-                                    <span className="font-body" style={{ color: '#333355', fontSize: '10px' }}>
-                                      {timeAgo(c.timestamp)}
-                                    </span>
-                                  </div>
-                                  <p className="font-body text-xs" style={{ color: '#E8E8FF' }}>
-                                    {renderText(c.text)}
-                                  </p>
-                                  <button className="font-body flex items-center gap-1 mt-1" style={{ color: '#6666AA', fontSize: '10px' }}>
-                                    <Heart size={10} strokeWidth={1.5} /> {c.likes}
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        <div className="flex gap-2">
-                          <input 
-                            value={commentText} 
-                            onChange={e => setCommentText(e.target.value)}
-                            className="flex-1 px-3 py-2 rounded font-body text-xs focus:outline-none"
-                            style={{ background: '#0D0D1A', border: `1px solid ${factionColor}30`, color: '#E8E8FF' }}
-                            placeholder="Write a reply..."
-                            onKeyDown={e => e.key === 'Enter' && handleComment(post.id)}
-                          />
-                          <button 
-                            onClick={() => handleComment(post.id)}
-                            className="px-3 py-2 rounded font-display text-xs font-bold"
-                            style={{ background: `${factionColor}20`, color: factionColor }}
-                          >
-                            REPLY
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                    {/* Post Content - clickable */}
+                    <div className="mb-3 cursor-pointer">
+                      <p className="text-white leading-relaxed" style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', lineHeight: '1.5' }}>
+                        {post.text}
+                      </p>
+                    </div>
+
+                    {/* Action Buttons - interactive like X */}
+                    <div className="flex flex-row items-center justify-between w-full mt-2 text-gray-500">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleReply(post.id, e);
+                        }}
+                        className="flex items-center gap-1"
+                      >
+                        <MessageCircle size={18} />
+                        <span>{post.comments || 0}</span>
+                      </button>
+                      
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRepost(post.id, e);
+                        }}
+                        className="flex items-center gap-1"
+                      >
+                        <Repeat2 size={18} />
+                        <span>{Math.floor((post.likedBy?.length || 0) * 0.3)}</span>
+                      </button>
+                      
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLike(post.id, e);
+                        }}
+                        className={`flex items-center gap-1 ${
+                          isLiked 
+                            ? 'text-red-500' 
+                            : 'hover:text-red-500'
+                        }`}
+                      >
+                        <Heart 
+                          size={18} 
+                          fill={isLiked ? 'currentColor' : 'none'}
+                          className={`transition-transform ${
+                            animatingPosts.has(post.id) ? 'scale-125' : ''
+                          }`}
+                        />
+                        <span>{post.likedBy?.length || 0}</span>
+                      </button>
+                      
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleShare(post.id, e);
+                        }}
+                        className="flex items-center gap-1"
+                      >
+                        <Share2 size={18} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             );
-          })}
+        })}
         </div>
       </div>
 
-      {/* Mobile bounties */}
-      <div className="lg:hidden w-full max-w-2xl mx-auto px-4 md:px-6 pb-20">
-        <div className="rounded-lg p-4" style={{ background: '#080812', border: '1px solid #1A1A2E' }}>
-          <h3 className="font-display text-xs font-bold tracking-widest mb-3" style={{ color: '#FF003C' }}>
-            ACTIVE BOUNTIES
-          </h3>
-          <div className="space-y-2">
-            {activeBounties.slice(0, 3).map(b => (
-              <div key={b.id} className="flex items-center justify-between py-2 border-b" style={{ borderColor: '#1A1A2E' }}>
-                <span className="font-display text-xs font-bold flex items-center gap-1" style={{ color: '#FFD700' }}>
-                  <Target size={12} strokeWidth={1.5} /> {getUser(b.targetId)?.username || 'Unknown'}
-                </span>
-                <span className="font-body text-xs" style={{ color: '#6666AA' }}>{b.amount} Gold</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Right sidebar */}
-      <aside className="hidden lg:block w-72 p-6 space-y-6 shrink-0">
-        <div>
-          <h3 className="font-display text-xs font-bold tracking-widest mb-4" style={{ color: '#FF003C' }}>
-            ACTIVE BOUNTIES
-          </h3>
-          <div className="space-y-3">
-            {activeBounties.slice(0, 3).map(b => (
-              <div key={b.id} className="flex items-center justify-between py-2 border-b" style={{ borderColor: '#1A1A2E' }}>
-                <span className="font-display text-xs font-bold flex items-center gap-1" style={{ color: '#FFD700' }}>
-                  <Target size={12} strokeWidth={1.5} /> {getUser(b.targetId)?.username || 'Unknown'}
-                </span>
-                <span className="font-body text-xs" style={{ color: '#6666AA' }}>{b.amount} Gold</span>
-              </div>
-            ))}
-          </div>
-          <h3 className="font-display text-xs font-bold tracking-widest mb-4 mt-6" style={{ color: '#8B00FF', letterSpacing: '4px' }}>
-            TRENDING CLANS
-          </h3>
-          {clans.slice(0, 3).map((clan, i) => (
-            <div key={clan.id} className="py-2 border-b font-body text-sm" style={{ borderColor: '#1A1A2E', color: '#6666AA' }}>
-              #{i + 1} {clan.name}
-            </div>
-          ))}
-        </div>
-      </aside>
-
-      {/* Quote modal */}
-      {quoteModal && (
+      
+      
+      {/* Compose Modal */}
+      {isComposeModalOpen && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center" 
-          style={{ background: 'rgba(0,0,0,0.85)' }}
-          onClick={() => setQuoteModal(null)}
+          className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-end justify-center md:items-center"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsComposeModalOpen(false);
+          }}
         >
           <div 
-            className="w-full max-w-lg p-6 rounded-lg" 
-            style={{ background: '#0D0D1A', border: '1px solid #2A2A4E' }}
-            onClick={e => e.stopPropagation()}
+            className="w-full max-h-[92vh] bg-[#080812] rounded-t-2xl border-t border-[#2A2A4E] flex flex-col overflow-hidden md:max-w-[560px] md:rounded-xl md:border md:mx-auto"
           >
-            <h3 className="font-display text-sm font-bold tracking-widest mb-4" style={{ color: '#E8E8FF' }}>
-              QUOTE POST
-            </h3>
-            <textarea 
-              value={quoteText} 
-              onChange={e => setQuoteText(e.target.value)}
-              className="w-full bg-transparent font-body text-sm resize-none focus:outline-none mb-3"
-              style={{ 
-                color: '#E8E8FF', 
-                minHeight: '80px', 
-                padding: '12px 16px', 
-                background: '#080812', 
-                border: `1px solid ${factionColor}30`, 
-                borderRadius: '8px' 
-              }}
-              placeholder="Add your commentary..."
-              maxLength={500}
-            />
-            <div className="p-3 rounded-lg mb-4" style={{ background: '#080812', border: '1px solid #1A1A2E' }}>
-              <p className="font-body text-xs" style={{ color: '#6666AA' }}>
-                {posts.find(p => p.id === quoteModal)?.text}
-              </p>
-            </div>
-            <div className="flex gap-3 justify-end">
-              <button 
-                onClick={() => setQuoteModal(null)} 
-                className="px-4 py-2 rounded font-body text-sm" 
-                style={{ color: '#6666AA' }}
+            
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 h-14 border-b border-[#1A1A2E] flex-shrink-0 relative">
+              <button
+                className="w-9 h-9 flex items-center justify-center bg-transparent border-none rounded-full text-[#E8E8FF] cursor-pointer transition-colors hover:bg-white/8"
+                onClick={() => setIsComposeModalOpen(false)}
+                aria-label="Close"
               >
-                Cancel
+                <X size={20} />
               </button>
-              <button 
-                onClick={handleQuotePost}
-                className="px-6 py-2 rounded-md font-display text-xs font-bold tracking-widest"
-                style={{ 
-                  background: `linear-gradient(135deg, ${factionColor}, ${getFactionGlow(currentUser?.anime || 'jjk')})`, 
-                  color: '#030308' 
-                }}
-              >
-                POST
-              </button>
+
+              <span className="font-orbitron text-[14px] font-bold tracking-widest uppercase text-[#E8E8FF] absolute left-1/2 -translate-x-1/2">
+                Create Post
+              </span>
             </div>
+
+            {/* Body */}
+            <div className="flex gap-3 p-4 flex-1 overflow-y-auto">
+              
+              {/* Avatar column */}
+              <div className="flex flex-col items-center">
+                <div className="w-10 h-10 rounded-full flex-shrink-0 border-2 border-[#8B00FF] bg-[#0D0D1A] flex items-center justify-center font-orbitron text-[14px] font-bold text-[#E8E8FF] overflow-hidden">
+                  {currentUser.username[0]?.toUpperCase()}
+                </div>
+                <div className="w-0.5 bg-[#1A1A2E] mx-auto mt-2 flex-1 min-h-[20px] rounded-sm" />
+              </div>
+
+              {/* Text area column */}
+              <div className="flex-1 min-w-0 flex flex-col">
+                <textarea
+                  className="w-full min-h-[120px] bg-transparent border-none outline-none text-[#E8E8FF] font-rajdhani text-[18px] font-normal leading-[1.55] resize-none p-0 caret-[#8B00FF] placeholder:text-[#333355] placeholder:text-[18px]"
+                  placeholder="What is happening in your world?"
+                  value={newPost}
+                  onChange={(e) => setNewPost(e.target.value)}
+                  maxLength={500}
+                  autoFocus
+                />
+              </div>
+
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between px-4 pb-[calc(10px+env(safe-area-inset-bottom,0px))] pt-2.5 border-t border-[#1A1A2E] flex-shrink-0">
+              <div className="flex items-center gap-1">
+                {/* Clan tag button */}
+                <button className="w-9 h-9 flex items-center justify-center bg-transparent border-none rounded-full text-[#8B00FF] cursor-pointer transition-colors hover:bg-[rgba(139,0,255,0.1)]" aria-label="Tag clan">
+                  <Shield size={18} />
+                </button>
+                {/* Brag toggle */}
+                <button className="w-9 h-9 flex items-center justify-center bg-transparent border-none rounded-full text-[#8B00FF] cursor-pointer transition-colors hover:bg-[rgba(139,0,255,0.1)]" aria-label="Brag post">
+                  <MessageCircle size={18} />
+                </button>
+              </div>
+
+              <span
+                className={`font-rajdhani text-[13px] tracking-wider ${
+                  newPost.length > 450 ? 'text-[#FF6B00]' : ''
+                } ${
+                  newPost.length >= 500 ? 'text-[#FF003C]' : 'text-[#333355]'
+                }`}
+              >
+                {newPost.length}/500
+              </span>
+            </div>
+
           </div>
         </div>
       )}
@@ -886,4 +635,4 @@ const FeedEnhanced = () => {
   );
 };
 
-export default FeedEnhanced;
+export default Feed;

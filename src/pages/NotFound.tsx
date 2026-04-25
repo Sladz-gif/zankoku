@@ -8,6 +8,11 @@ const NotFound = () => {
   const [currentFact, setCurrentFact] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
+  // Redirect to feed page
+  useEffect(() => {
+    navigate('/feed');
+  }, [navigate]);
+
   // Comprehensive Anime Fun Facts Database
   const animeFunFacts = [
     {
@@ -714,7 +719,7 @@ const NotFound = () => {
                 { icon: Compass, label: 'Feed', href: '/feed' },
                 { icon: Zap, label: 'Store', href: '/store' },
                 { icon: Skull, label: 'Bounties', href: '/bounties' },
-                { icon: Tv2, label: 'Spectate', href: '/spectate' }
+                { icon: Tv2, label: 'Anime News', href: '/anime-news' }
               ].map((item, index) => (
                 <button
                   key={index}
