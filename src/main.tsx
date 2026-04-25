@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import App from "./App-debug-env.tsx";
+import App from "./App-test-router.tsx";
 import "./index.css";
 
 // Debug logging
