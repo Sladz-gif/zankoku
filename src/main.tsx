@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import App from "./App-test-gamecontext.tsx";
+import App from "./App-test-layout.tsx";
 import "./index.css";
 
 // Debug logging
