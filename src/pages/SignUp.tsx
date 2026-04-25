@@ -71,19 +71,28 @@ const SignUp = () => {
       // This is a safe way to check without revealing sensitive info
       const { error } = await supabase.auth.signInWithPassword({
         email,
-        password: 'dummy-password-for-check-only'
+        password: 'dummy-password-for-check-only-' + Date.now() // Add timestamp to avoid accidental matches
       });
 
-      // If error is about invalid credentials, user exists
+      // If error is about invalid login credentials, user doesn't exist (this is expected)
       if (error && error.message.includes('Invalid login credentials')) {
-        setEmailError('An account with this email already exists. Please sign in instead.');
+        // This is the expected behavior for a non-existent user
+        // No error message needed - user can proceed
       }
       // If error is about email not confirmed, user exists but hasn't confirmed
       else if (error && error.message.includes('Email not confirmed')) {
         setEmailError('An account with this email exists but hasn\'t been confirmed. Please check your email or sign in.');
       }
-      // If no error, user doesn't exist (or password happens to match, which is extremely unlikely)
-      // In the rare case password matches, we'll handle it in the actual signup
+      // If no error, this means the dummy password accidentally matched (extremely unlikely)
+      // OR the user exists and we somehow guessed their password
+      else if (!error) {
+        setEmailError('An account with this email already exists. Please sign in instead.');
+      }
+      // Handle other specific errors that might indicate user exists
+      else if (error.message.includes('User already registered') || 
+               error.message.includes('user_already_exists')) {
+        setEmailError('An account with this email already exists. Please sign in instead.');
+      }
     } catch (error) {
       // If there's a network error or other issue, don't block the user
       console.log('Email check failed:', error);
