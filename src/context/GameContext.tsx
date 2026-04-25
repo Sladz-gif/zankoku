@@ -73,8 +73,297 @@ export const useGame = () => {
 
 export const GameProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<ZankokuUser | null>(null);
-  const [users, setUsers] = useState<ZankokuUser[]>([]);
-  const [posts, setPosts] = useState<any[]>([]);
+  
+  // Demo posts for initialization
+  const demoPosts = [
+    {
+      id: 1,
+      userId: 1,
+      text: "Just mastered the Rasengan! Who's ready for a training session? 🌀⚡ The power of the Nine-Tails flows through me!",
+      timestamp: Date.now() - 1000 * 60 * 5,
+      likedBy: [2, 3, 4],
+      comments: 12,
+      anime: 'naruto' as const
+    },
+    {
+      id: 2,
+      userId: 2,
+      text: "The Domain Expansion is ready. Unlimited Void awaits those who challenge me. 👁️✨ None can escape my infinite void.",
+      timestamp: Date.now() - 1000 * 60 * 15,
+      likedBy: [1, 3, 5],
+      comments: 8,
+      anime: 'jjk' as const
+    },
+    {
+      id: 3,
+      userId: 3,
+      text: "King of the Pirates? More like King of the Battle Arena! Who wants to test their Haki against mine? 💫⚔️ I'll show you the power of conqueror's Haki!",
+      timestamp: Date.now() - 1000 * 60 * 30,
+      likedBy: [1, 2, 4],
+      comments: 15,
+      anime: 'onepiece' as const
+    },
+    {
+      id: 4,
+      userId: 4,
+      text: "Water Breathing Form: Waterfall Basin! Perfect technique for clearing out the battle lobby. 🌊💪 Let me show you the way of the Demon Slayer!",
+      timestamp: Date.now() - 1000 * 60 * 45,
+      likedBy: [1, 2, 3],
+      comments: 6,
+      anime: 'demonslayer' as const
+    },
+    {
+      id: 5,
+      userId: 5,
+      text: "Anti-magic swords are ready! No jutsus, no cursed energy - just pure skill. Who's brave enough? ⚔️✨ My demon-slayer sword awaits!",
+      timestamp: Date.now() - 1000 * 60 * 60,
+      likedBy: [2, 3, 4],
+      comments: 10,
+      anime: 'blackclover' as const
+    },
+    {
+      id: 6,
+      userId: 6,
+      text: "Super Saiyan transformation achieved in the battle arena! Power levels are off the charts! 🔥⚡ KA-ME-HA-ME-HA!",
+      timestamp: Date.now() - 1000 * 60 * 90,
+      likedBy: [1, 3, 5],
+      comments: 20,
+      anime: 'dragonball' as const
+    },
+    {
+      id: 7,
+      userId: 7,
+      text: "Nen abilities mastered! My Bungee Gum is ready for battle. Who wants to test their luck against me? 🌀💪 Let's see what you're made of!",
+      timestamp: Date.now() - 1000 * 60 * 120,
+      likedBy: [1, 2, 6],
+      comments: 9,
+      anime: 'hxh' as const
+    },
+    {
+      id: 8,
+      userId: 8,
+      text: "Bankai achieved! My Zanpakuto's true form is unleashed. Prepare to face the power of a thousand souls! ⚔️✨",
+      timestamp: Date.now() - 1000 * 60 * 150,
+      likedBy: [3, 4, 5],
+      comments: 14,
+      anime: 'bleach' as const
+    }
+  ];
+
+  // Demo users for initialization
+  const demoUsers: ZankokuUser[] = [
+    {
+      id: 1,
+      username: 'NarutoUzumaki',
+      bio: 'Future Hokage of the Hidden Leaf Village',
+      anime: 'naruto',
+      alignment: 'wanderer',
+      rank: 500,
+      points: 1000,
+      roleTag: '',
+      cowardStars: 0,
+      betrayalHistory: [],
+      bountyActive: false,
+      bountyAmount: 0,
+      currency: { bronze: 50, silver: 0, gold: 0 },
+      techniques: ['Rasengan'],
+      duelsWon: 0,
+      duelsLost: 0,
+      shapesCaptured: 0,
+      clanWars: 0,
+      bountiesClaimed: 0,
+      avatar: 1,
+      clanId: null,
+      resource: 100,
+      maxResource: 100,
+      isLoggedIn: false
+    },
+    {
+      id: 2,
+      username: 'GojoSatoru',
+      bio: 'The strongest Jujutsu Sorcerer',
+      anime: 'jjk',
+      alignment: 'wanderer',
+      rank: 600,
+      points: 1200,
+      roleTag: '',
+      cowardStars: 0,
+      betrayalHistory: [],
+      bountyActive: false,
+      bountyAmount: 0,
+      currency: { bronze: 75, silver: 10, gold: 0 },
+      techniques: ['Domain Expansion'],
+      duelsWon: 0,
+      duelsLost: 0,
+      shapesCaptured: 0,
+      clanWars: 0,
+      bountiesClaimed: 0,
+      avatar: 2,
+      clanId: null,
+      resource: 100,
+      maxResource: 100,
+      isLoggedIn: false
+    },
+    {
+      id: 3,
+      username: 'LuffyCaptain',
+      bio: 'King of the Pirates',
+      anime: 'onepiece',
+      alignment: 'wanderer',
+      rank: 550,
+      points: 1100,
+      roleTag: '',
+      cowardStars: 0,
+      betrayalHistory: [],
+      bountyActive: false,
+      bountyAmount: 0,
+      currency: { bronze: 60, silver: 5, gold: 0 },
+      techniques: ['Gomu Gomu no Mi'],
+      duelsWon: 0,
+      duelsLost: 0,
+      shapesCaptured: 0,
+      clanWars: 0,
+      bountiesClaimed: 0,
+      avatar: 3,
+      clanId: null,
+      resource: 100,
+      maxResource: 100,
+      isLoggedIn: false
+    },
+    {
+      id: 4,
+      username: 'IchigoKurosaki',
+      bio: 'Substitute Soul Reaper',
+      anime: 'demonslayer',
+      alignment: 'wanderer',
+      rank: 525,
+      points: 1050,
+      roleTag: '',
+      cowardStars: 0,
+      betrayalHistory: [],
+      bountyActive: false,
+      bountyAmount: 0,
+      currency: { bronze: 55, silver: 2, gold: 0 },
+      techniques: ['Getsuga Tensho'],
+      duelsWon: 0,
+      duelsLost: 0,
+      shapesCaptured: 0,
+      clanWars: 0,
+      bountiesClaimed: 0,
+      avatar: 4,
+      clanId: null,
+      resource: 100,
+      maxResource: 100,
+      isLoggedIn: false
+    },
+    {
+      id: 5,
+      username: 'AstaBlack',
+      bio: 'Anti-magic knight',
+      anime: 'blackclover',
+      alignment: 'wanderer',
+      rank: 480,
+      points: 950,
+      roleTag: '',
+      cowardStars: 0,
+      betrayalHistory: [],
+      bountyActive: false,
+      bountyAmount: 0,
+      currency: { bronze: 45, silver: 0, gold: 0 },
+      techniques: ['Anti-Magic Sword'],
+      duelsWon: 0,
+      duelsLost: 0,
+      shapesCaptured: 0,
+      clanWars: 0,
+      bountiesClaimed: 0,
+      avatar: 5,
+      clanId: null,
+      resource: 100,
+      maxResource: 100,
+      isLoggedIn: false
+    },
+    {
+      id: 6,
+      username: 'GokuSaiyan',
+      bio: 'Super Saiyan Warrior',
+      anime: 'dragonball',
+      alignment: 'wanderer',
+      rank: 700,
+      points: 1500,
+      roleTag: '',
+      cowardStars: 0,
+      betrayalHistory: [],
+      bountyActive: false,
+      bountyAmount: 0,
+      currency: { bronze: 100, silver: 25, gold: 5 },
+      techniques: ['Kamehameha'],
+      duelsWon: 0,
+      duelsLost: 0,
+      shapesCaptured: 0,
+      clanWars: 0,
+      bountiesClaimed: 0,
+      avatar: 6,
+      clanId: null,
+      resource: 100,
+      maxResource: 100,
+      isLoggedIn: false
+    },
+    {
+      id: 7,
+      username: 'KilluaZoldyck',
+      bio: 'Professional Assassin',
+      anime: 'hxh',
+      alignment: 'wanderer',
+      rank: 520,
+      points: 1020,
+      roleTag: '',
+      cowardStars: 0,
+      betrayalHistory: [],
+      bountyActive: false,
+      bountyAmount: 0,
+      currency: { bronze: 52, silver: 1, gold: 0 },
+      techniques: ['Bungee Gum'],
+      duelsWon: 0,
+      duelsLost: 0,
+      shapesCaptured: 0,
+      clanWars: 0,
+      bountiesClaimed: 0,
+      avatar: 7,
+      clanId: null,
+      resource: 100,
+      maxResource: 100,
+      isLoggedIn: false
+    },
+    {
+      id: 8,
+      username: 'ByakuyaKuchiki',
+      bio: 'Captain of the 6th Division',
+      anime: 'bleach',
+      alignment: 'wanderer',
+      rank: 580,
+      points: 1150,
+      roleTag: '',
+      cowardStars: 0,
+      betrayalHistory: [],
+      bountyActive: false,
+      bountyAmount: 0,
+      currency: { bronze: 65, silver: 8, gold: 1 },
+      techniques: ['Senbonzakura'],
+      duelsWon: 0,
+      duelsLost: 0,
+      shapesCaptured: 0,
+      clanWars: 0,
+      bountiesClaimed: 0,
+      avatar: 8,
+      clanId: null,
+      resource: 100,
+      maxResource: 100,
+      isLoggedIn: false
+    }
+  ];
+
+  const [users, setUsers] = useState<ZankokuUser[]>(demoUsers);
+  const [posts, setPosts] = useState<any[]>(demoPosts);
   const [clans, setClans] = useState<any[]>([]);
   const [bounties, setBounties] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -325,9 +614,10 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     banClanMember,
     promoteClanMember,
     getClanMemberRole,
-  getPostById: useCallback((id: string) => {
-    return posts.find(p => String(p.id) === id);
-  }, [posts]);
+    getPostById: useCallback((id: string) => {
+      return posts.find(p => String(p.id) === id);
+    }, [posts])
+  };
 
   return (
     <GameContext.Provider value={value}>
