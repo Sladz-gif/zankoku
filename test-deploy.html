@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Deployment</title>
+    <style>
+        body {
+            background: #030308;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .test {
+            border: 1px solid #1A1A2E;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        .success { border-color: #00FF88; }
+        .error { border-color: #FF003C; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Deployment Test</h1>
+    
+    <div class="test">
+        <h2>Basic HTML Test</h2>
+        <p>If you can see this, basic HTML is working.</p>
+    </div>
+
+    <div class="test">
+        <h2>JavaScript Test</h2>
+        <p id="js-test">Testing JavaScript...</p>
+    </div>
+
+    <div class="test">
+        <h2>React Root Test</h2>
+        <p>Looking for root element...</p>
+        <div id="root">Root element found!</div>
+    </div>
+
+    <script>
+        // Test JavaScript
+        document.getElementById('js-test').textContent = 'JavaScript is working!';
+        console.log('🚀 Test page loaded successfully');
+        
+        // Test if we can create elements
+        try {
+            const testDiv = document.createElement('div');
+            testDiv.textContent = 'Dynamic element creation works!';
+            document.body.appendChild(testDiv);
+            console.log('✅ Dynamic element creation test passed');
+        } catch (error) {
+            console.error('❌ Dynamic element creation failed:', error);
+        }
+    </script>
+</body>
+</html>
