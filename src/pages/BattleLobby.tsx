@@ -6,7 +6,7 @@ import { Swords, Shield, Users, Search, Filter, UserPlus, UserMinus, AlertTriang
 
 const BattleLobby = () => {
   const navigate = useNavigate();
-  const { users, currentUser, blockedUsers, blockUser } = useGame();
+  const { users, currentUser } = useGame();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOpponent, setSelectedOpponent] = useState<number | null>(null);
@@ -14,15 +14,11 @@ const BattleLobby = () => {
   const [isSearching, setIsSearching] = useState(false);
 
   const filteredUsers = users.filter(user => 
-    user.id !== currentUser.id &&
-    user.username.toLowerCase().includes(searchQuery.toLowerCase()) &&
-    !blockedUsers.includes(user.id)
+    user?.id !== currentUser?.id &&
+    user?.username?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleBlockToggle = (userId: number) => {
-    blockUser(userId);
-  };
-
+  
   const handleStartBattle = () => {
     if (selectedOpponent) {
       navigate(`/game?opponent=${selectedOpponent}&type=${duelType}`);
@@ -127,7 +123,6 @@ const BattleLobby = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredUsers.map(user => {
               const isSelected = selectedOpponent === user.id;
-              const isBlocked = blockedUsers.includes(user.id);
               const userColor = getFactionColor(user.anime);
               
               return (
@@ -150,7 +145,7 @@ const BattleLobby = () => {
                           borderColor: userColor
                         }}
                       >
-                        {user.username[0]?.toUpperCase()}
+                        {user.username?.[0]?.toUpperCase() || '?'}
                       </div>
                       <div>
                         <div className="font-semibold text-[#E8E8FF] text-sm">{user.username}</div>
@@ -183,27 +178,13 @@ const BattleLobby = () => {
                   
                   {/* Action Buttons */}
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={e => {
-                        e.stopPropagation();
-                        handleBlockToggle(user.id);
-                      }}
-                      className={`flex-1 px-3 py-2 rounded text-xs font-medium transition-colors ${
-                        isBlocked
-                          ? 'bg-[#FF003C] text-white hover:bg-[#FF003C]/80'
-                          : 'bg-[#1A1A2E] text-[#6666AA] hover:bg-[#2A2A4E] hover:text-[#E8E8FF]'
-                      }`}
-                    >
-                      {isBlocked ? 'UNBLOCK' : 'BLOCK'}
-                    </button>
-                    
                     {isSelected && (
                       <button
                         onClick={e => {
                           e.stopPropagation();
                           handleStartBattle();
                         }}
-                        className="flex-1 px-3 py-2 bg-gradient-to-r from-[#8B00FF] to-[#5500CC] text-white rounded-lg font-medium text-xs hover:shadow-[0_0_16px_rgba(139,0,255,0.5)] transition-all"
+                        className="w-full px-3 py-2 bg-gradient-to-r from-[#8B00FF] to-[#5500CC] text-white rounded-lg font-medium text-xs hover:shadow-[0_0_16px_rgba(139,0,255,0.5)] transition-all"
                       >
                         BATTLE
                       </button>
@@ -232,7 +213,7 @@ const BattleLobby = () => {
                     borderColor: opponentColor
                   }}
                 >
-                  {opponent.username[0]?.toUpperCase()}
+                  {opponent.username?.[0]?.toUpperCase() || '?'}
                 </div>
                 
                 <div className="flex-1">
