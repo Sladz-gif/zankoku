@@ -61,7 +61,7 @@ export const signInWithUsernameOrEmail = async (identifier: string, password: st
         .select('email')
         .eq('username', identifier)
         .eq('is_banned', false)
-        .maybeSingle() as { data: { email: string } | null, error: any };
+        .maybeSingle() as { data: { email: string } | null, error: { message: string } | null };
       
       if (profileError || !profileData?.email) {
         return { 

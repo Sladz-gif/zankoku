@@ -13,60 +13,7 @@ const PostDetail = () => {
   const [comments, setComments] = useState([]);
   const factionColor = currentUser ? getFactionColor(currentUser.anime) : '#8B00FF';
 
-  if (!posts || posts.length === 0) return (
-    <div className="page-enter max-w-2xl mx-auto p-6">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-2 font-body text-sm mb-4" style={{ color: '#6666AA' }}>
-        <ArrowLeft size={18} strokeWidth={1.5} /> Back to Feed
-      </button>
-      <p className="font-body text-sm" style={{ color: '#6666AA' }}>Loading posts...</p>
-    </div>
-  );
-
-  const post = getPostById(id);
-  if (!post) return (
-    <div className="page-enter max-w-2xl mx-auto p-6">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-2 font-body text-sm mb-4" style={{ color: '#6666AA' }}>
-        <ArrowLeft size={18} strokeWidth={1.5} /> Back to Feed
-      </button>
-      <p className="font-body text-sm" style={{ color: '#6666AA' }}>Post not found.</p>
-    </div>
-  );
-
-  const getUser = (uid: number) => {
-    if (currentUser?.id === uid) return currentUser;
-    return users.find(u => u.id === uid);
-  };
-
-  const author = getUser(post.userId);
-  if (!author) return null;
-  const authorColor = getFactionColor(author.anime);
-  const isLiked = currentUser ? post.likedBy?.includes(currentUser.id) : false;
-  const pComments = comments.filter(c => c.postId === post.id);
-
-  const handleLike = async (postId: string, event: React.MouseEvent) => {
-    event.stopPropagation();
-    if (!currentUser) return;
-    
-    setAnimatingPosts(prev => new Set(prev).add(postId));
-    // TODO: Implement actual like functionality
-    console.log('Post liked:', postId);
-    
-    setTimeout(() => {
-      setAnimatingPosts(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(postId);
-        return newSet;
-      });
-    }, 200);
-  };
-
-  const handleComment = () => {
-    if (!commentText.trim()) return;
-    // TODO: Implement actual comment functionality
-    console.log('Comment added:', commentText);
-    setCommentText('');
-  };
-
+  // Move useEffect to top to follow Rules of Hooks
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
@@ -100,6 +47,19 @@ const PostDetail = () => {
       .flex.justify-around button span {
         display: inline-block !important;
       }
+      
+      .flex.gap-4 > *,
+      .flex.gap-6 > * {
+        flex-shrink: 0;
+      }
+      
+      .space-y-3 > * {
+        margin-bottom: 0.75rem !important;
+      }
+      
+      .page-enter {
+        min-height: 100vh;
+      }
     `;
     document.head.appendChild(style);
     
@@ -107,6 +67,62 @@ const PostDetail = () => {
       document.head.removeChild(style);
     };
   }, []);
+
+  // Helper functions and calculations
+  const getUser = (uid: number) => {
+    if (currentUser?.id === uid) return currentUser;
+    return users.find(u => u.id === uid);
+  };
+
+  const handleLike = async (postId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (!currentUser) return;
+    
+    setAnimatingPosts(prev => new Set(prev).add(postId));
+    // TODO: Implement actual like functionality
+    console.log('Post liked:', postId);
+    
+    setTimeout(() => {
+      setAnimatingPosts(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(postId);
+        return newSet;
+      });
+    }, 200);
+  };
+
+  const handleComment = () => {
+    if (!commentText.trim()) return;
+    // TODO: Implement actual comment functionality
+    console.log('Comment added:', commentText);
+    setCommentText('');
+  };
+
+  // Early returns after all hooks
+  if (!posts || posts.length === 0) return (
+    <div className="page-enter max-w-2xl mx-auto p-6">
+      <button onClick={() => navigate(-1)} className="flex items-center gap-2 font-body text-sm mb-4" style={{ color: '#6666AA' }}>
+        <ArrowLeft size={18} strokeWidth={1.5} /> Back to Feed
+      </button>
+      <p className="font-body text-sm" style={{ color: '#6666AA' }}>Loading posts...</p>
+    </div>
+  );
+
+  const post = getPostById(id);
+  if (!post) return (
+    <div className="page-enter max-w-2xl mx-auto p-6">
+      <button onClick={() => navigate(-1)} className="flex items-center gap-2 font-body text-sm mb-4" style={{ color: '#6666AA' }}>
+        <ArrowLeft size={18} strokeWidth={1.5} /> Back to Feed
+      </button>
+      <p className="font-body text-sm" style={{ color: '#6666AA' }}>Post not found.</p>
+    </div>
+  );
+
+  const author = getUser(post.userId);
+  if (!author) return null;
+  const authorColor = getFactionColor(author.anime);
+  const isLiked = currentUser ? post.likedBy?.includes(currentUser.id) : false;
+  const pComments = comments.filter(c => c.postId === post.id);
 
   return (
     <div className="page-enter flex">

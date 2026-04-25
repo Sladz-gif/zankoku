@@ -146,7 +146,7 @@ export class ForbiddenTechniqueSystem {
         penalties.turnSkip = 1; // Permanently lose 1 turn per round
         break;
       
-      case 'wish_sacrifice':
+      case 'wish_sacrifice': {
         // Random penalty - could be any of the above
         const random = Math.random();
         if (random < 0.33) {
@@ -157,6 +157,7 @@ export class ForbiddenTechniqueSystem {
           penalties.techniqueLock = true;
         }
         break;
+      }
       
       case 'power_evolution_sacrifice':
         penalties.techniqueLock = true; // Lose techniques forever
