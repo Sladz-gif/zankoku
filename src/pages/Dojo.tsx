@@ -95,10 +95,9 @@ const Dojo = () => {
         <div className="flex items-center justify-between mb-12">
           <button
             onClick={() => navigate('/battle-lobby')}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1A1A2E] text-[#E8E8FF] rounded-lg font-medium hover:bg-[#2A2A4E] transition-all border border-[#333355]"
+            className="flex items-center justify-center w-10 h-10 bg-[#1A1A2E] text-[#E8E8FF] rounded-lg hover:bg-[#2A2A4E] transition-all border border-[#333355]"
           >
             <ChevronLeft size={20} />
-            Back to Battle Lobby
           </button>
           
           <div className="text-center flex-1">

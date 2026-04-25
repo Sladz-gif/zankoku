@@ -101,8 +101,8 @@ const PostDetail = () => {
   // Early returns after all hooks
   if (!posts || posts.length === 0) return (
     <div className="page-enter max-w-2xl mx-auto p-6">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-2 font-body text-sm mb-4" style={{ color: '#6666AA' }}>
-        <ArrowLeft size={18} strokeWidth={1.5} /> Back to Feed
+      <button onClick={() => navigate(-1)} className="flex items-center justify-center w-8 h-8 font-body text-sm mb-4 rounded-lg bg-[#1A1A2E] hover:bg-[#2A2A4E] transition-colors" style={{ color: '#6666AA' }}>
+        <ArrowLeft size={18} strokeWidth={1.5} />
       </button>
       <p className="font-body text-sm" style={{ color: '#6666AA' }}>Loading posts...</p>
     </div>
@@ -111,8 +111,8 @@ const PostDetail = () => {
   const post = getPostById(id);
   if (!post) return (
     <div className="page-enter max-w-2xl mx-auto p-6">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-2 font-body text-sm mb-4" style={{ color: '#6666AA' }}>
-        <ArrowLeft size={18} strokeWidth={1.5} /> Back to Feed
+      <button onClick={() => navigate(-1)} className="flex items-center justify-center w-8 h-8 font-body text-sm mb-4 rounded-lg bg-[#1A1A2E] hover:bg-[#2A2A4E] transition-colors" style={{ color: '#6666AA' }}>
+        <ArrowLeft size={18} strokeWidth={1.5} />
       </button>
       <p className="font-body text-sm" style={{ color: '#6666AA' }}>Post not found.</p>
     </div>
@@ -127,8 +127,8 @@ const PostDetail = () => {
   return (
     <div className="page-enter flex">
       <div className="flex-1 max-w-2xl mx-auto p-4 md:p-6">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 font-body text-sm mb-6" style={{ color: '#6666AA' }}>
-          <ArrowLeft size={18} strokeWidth={1.5} /> Back to Feed
+        <button onClick={() => navigate(-1)} className="flex items-center justify-center w-8 h-8 font-body text-sm mb-6 rounded-lg bg-[#1A1A2E] hover:bg-[#2A2A4E] transition-colors" style={{ color: '#6666AA' }}>
+          <ArrowLeft size={18} strokeWidth={1.5} />
         </button>
 
         <div className="rounded-lg p-6" style={{ background: '#080812', border: '1px solid #1A1A2E' }}>

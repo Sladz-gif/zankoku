@@ -1442,9 +1442,9 @@ const DotWarsGame = () => {
             </div>
           )}
           <div className="flex gap-4 justify-center">
-            <button onClick={() => navigate('/battle-lobby')} className="px-6 py-3 rounded-md font-display text-sm font-bold tracking-widest"
+            <button onClick={() => navigate('/battle-lobby')} className="flex items-center justify-center w-10 h-10 rounded-md font-display text-sm font-bold tracking-widest"
               style={{ background: '#FF003C20', color: '#FF003C', border: '1px solid #FF003C40' }}>
-              BACK TO LOBBY
+              ←
             </button>
             <button onClick={() => window.location.reload()} className="px-6 py-3 rounded-md font-display text-sm font-bold tracking-widest"
               style={{ background: `${winColor}20`, color: winColor, border: `1px solid ${winColor}40` }}>

@@ -425,8 +425,8 @@ const SignUp = () => {
                       style={{ background: 'linear-gradient(135deg, var(--neon-purple), #5500CC)' }}>
                 CONTINUE
               </button>
-              <button onClick={() => setStep(1)} className="w-full font-body text-[14px] py-2 mt-3 transition-colors hover:text-white" style={{ color: 'var(--text-muted)' }}>
-                BACK TO ACCOUNT DETAILS
+              <button onClick={() => setStep(1)} className="flex items-center justify-center w-8 h-8 font-body text-[14px] py-2 mt-3 rounded-lg bg-[#1A1A2E] hover:bg-[#2A2A4E] hover:text-white transition-colors mx-auto" style={{ color: 'var(--text-muted)' }}>
+                ←
               </button>
             </div>
           </div>

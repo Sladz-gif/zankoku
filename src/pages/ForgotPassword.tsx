@@ -28,8 +28,8 @@ const ForgotPassword = () => {
       <div className="relative z-10 w-full max-w-[420px] rounded-[4px] p-6 md:p-10"
            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-active)', boxShadow: '0 0 60px rgba(139,0,255,0.12)' }}>
         
-        <Link to="/signin" className="inline-flex items-center gap-2 font-body text-[14px] mb-8 hover:text-white transition-colors" style={{ color: 'var(--text-muted)' }}>
-          <ArrowLeft size={16} /> Back to sign in
+        <Link to="/signin" className="inline-flex items-center justify-center w-8 h-8 font-body text-[14px] mb-8 rounded-lg bg-[#1A1A2E] hover:bg-[#2A2A4E] hover:text-white transition-colors" style={{ color: 'var(--text-muted)' }}>
+          <ArrowLeft size={16} />
         </Link>
 
         {submitted ? (

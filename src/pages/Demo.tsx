@@ -40,9 +40,9 @@ const Demo = () => {
         <div className="flex gap-4 justify-center">
           <button
             onClick={() => navigate('/signin')}
-            className="px-6 py-3 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#2A2A4E] transition-colors"
+            className="flex items-center justify-center w-10 h-10 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#2A2A4E] transition-colors"
           >
-            Back to Sign-in
+            ←
           </button>
           <button
             onClick={() => navigate('/feed')}

@@ -67,7 +67,7 @@ const MessagesPage: React.FC = () => {
             transition: 'all 0.2s'
           }}
         >
-          Back to Feed
+          ←
         </button>
       </div>
     </div>

@@ -113,7 +113,7 @@ const TutorialPowerMoves = () => {
                 onClick={handleBackToDojo}
                 className="px-6 py-3 bg-gradient-to-r from-[#8B00FF] to-[#5500CC] text-white rounded-lg font-medium hover:shadow-[0_0_16px_rgba(139,0,255,0.5)] transition-all"
               >
-                Back to Dojo
+                ←
               </button>
             </div>
           </div>
@@ -144,11 +144,10 @@ const TutorialPowerMoves = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <button
-            onClick={() => navigate('/dojo')}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1A1A2E] text-[#E8E8FF] rounded-lg font-medium hover:bg-[#2A2A4E] transition-all border border-[#333355]"
+            onClick={handleBackToDojo}
+            className="flex items-center justify-center w-10 h-10 bg-[#1A1A2E] text-[#E8E8FF] rounded-lg hover:bg-[#2A2A4E] transition-all border border-[#333355]"
           >
             <ChevronLeft size={20} />
-            Back to Dojo
           </button>
           
           <div className="flex items-center gap-2">

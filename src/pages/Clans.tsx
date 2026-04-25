@@ -327,8 +327,8 @@ const Clans = () => {
     const cColor = getClanColor(detail.primaryAnime);
     return (
       <div className="page-enter max-w-4xl mx-auto p-4 md:p-6">
-        <button onClick={() => setSelectedClan(null)} className="font-['Rajdhani'] text-sm mb-4 flex items-center gap-1 hover:text-[var(--text-primary)] transition-colors" style={{ color: '#6666AA' }}>
-          <ArrowLeft size={14} strokeWidth={1.5} /> Back to Clans
+        <button onClick={() => setSelectedClan(null)} className="flex items-center justify-center w-8 h-8 font-['Rajdhani'] text-sm mb-4 rounded-lg bg-[#1A1A2E] hover:bg-[#2A2A4E] hover:text-[var(--text-primary)] transition-colors" style={{ color: '#6666AA' }}>
+          <ArrowLeft size={14} strokeWidth={1.5} />
         </button>
         
         {/* Clan Header */}
