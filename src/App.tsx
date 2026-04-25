@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { GameProvider } from "@/context/GameContext";
 import AppLayout from "@/components/layout/AppLayout";
 import AuthGuard from "@/components/AuthGuard";
+import VercelAnalytics from "@/components/Analytics";
 import Landing from "./pages/Landing";
 import SignUp from "./pages/SignUp";
 import SignIn from "./pages/SignIn";
@@ -56,12 +57,13 @@ const ScrollToTopRouter = () => {
 
 const App = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <GameProvider>
-        <BrowserRouter>
-          <ScrollToTopRouter />
-          <AppLayout>
-            <Routes>
+    <>
+      <QueryClientProvider client={queryClient}>
+        <GameProvider>
+          <BrowserRouter>
+            <ScrollToTopRouter />
+            <AppLayout>
+              <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Landing />} />
               <Route path="/signin" element={<SignIn />} />
@@ -220,8 +222,10 @@ const App = () => {
             </Routes>
           </AppLayout>
         </BrowserRouter>
-      </GameProvider>
-    </QueryClientProvider>
+        </GameProvider>
+      </QueryClientProvider>
+      <VercelAnalytics mode="production" />
+    </>
   );
 };
 
