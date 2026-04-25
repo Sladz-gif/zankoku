@@ -224,7 +224,7 @@ const App = () => {
         </BrowserRouter>
         </GameProvider>
       </QueryClientProvider>
-      <VercelAnalytics mode="production" />
+      {/* <VercelAnalytics mode="production" /> */}
     </>
   );
 };
